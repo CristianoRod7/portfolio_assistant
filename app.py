@@ -40,7 +40,75 @@ COMPANY_OPTIONS = [
 # =========================
 # DB 유틸 (PostgreSQL)
 # =========================
+# ... 기존 imports 아래에 추가 ...
 
+# [이미지 기반 학과 목록 데이터]
+MAJORS = {
+    "공학계열": [
+        "건설안전방재학과", "환경에너지학과", "소방안전관리학과", 
+        "전기전자공학과", "컴퓨터공학과", "건축인테리어학과", "첨단기술융합학부"
+    ],
+    "인문사회계열": [
+        "자치행정학과", "경찰행정학과", "토지행정학과"
+    ],
+    "자연과학계열": [
+        "호텔조리제빵학과", "뷰티코디네이션학과", "작업치료학과", "스마트팜학과"
+    ]
+}
+
+# ... (중간 생략) ...
+
+# [새로운 기능] 학과 기반 직무 추천 라우트 추가
+@app.route('/career', methods=['GET', 'POST'])
+def career():
+    if not session.get('logged_in'):
+        flash('관리자만 접근할 수 있습니다.', 'danger')
+        return redirect(url_for('login'))
+
+    result = None
+    selected_major = None
+    selected_company = None
+
+    if request.method == 'POST':
+        selected_major = request.form.get('major')
+        selected_company = request.form.get('company')
+
+        if selected_major and selected_company:
+            try:
+                # AI에게 전공+기업 조합으로 직무 추천 요청
+                prompt = f"""
+                당신은 취업 컨설턴트입니다.
+                
+                사용자 정보:
+                - 전공: {selected_major}
+                - 희망 기업: {selected_company}
+                
+                요청 사항:
+                위 전공자가 '{selected_company}'에 지원할 때 적합한 '관련 직무(Job Titles)' 5가지를 추천해주세요.
+                그리고 각 직무별로 필요한 '핵심 역량'을 한 줄로 요약해주세요.
+                
+                결과는 반드시 아래와 같은 마크다운 표 형식으로만 출력하세요. 사족은 붙이지 마세요.
+                
+                | 추천 직무 | 핵심 역량 및 업무 요약 |
+                | --- | --- |
+                | (직무명) | (설명) |
+                ...
+                """
+                
+                chat_completion = client.chat.completions.create(
+                    messages=[{"role": "user", "content": prompt}],
+                    model="llama3-8b-8192",
+                )
+                result = chat_completion.choices[0].message.content
+                
+                # 마크다운을 HTML로 변환
+                result = markdown.markdown(result, extensions=['tables'])
+                
+            except Exception as e:
+                flash(f"AI 분석 중 오류가 발생했습니다: {str(e)}", 'danger')
+
+    return render_template('career.html', majors=MAJORS, result=result, 
+                           sel_major=selected_major, sel_company=selected_company)
 def get_db_connection():
     """PostgreSQL DB 연결 함수"""
     db_url = os.getenv("DATABASE_URL")
@@ -52,7 +120,7 @@ def get_db_connection():
     return conn
 
 def init_db():
-    """테이블 생성 (서버 시작 시 실행)"""
+    """테이블 생성 및 마이그레이션 (서버 시작 시 실행)"""
     try:
         conn = get_db_connection()
         if not conn: return
@@ -590,7 +658,58 @@ def import_data():
         return redirect(url_for('index'))
     except Exception as e:
         return f"복구 실패: {str(e)}", 500
+    
+@app.route('/career', methods=['GET', 'POST'])
+def career():
+    # 로그인 체크 (필요 없으면 이 3줄 삭제)
+    if not session.get('logged_in'):
+        flash('기능을 사용하려면 관리자 로그인이 필요합니다.', 'warning')
+        return redirect(url_for('login'))
 
+    result = None
+    selected_major = None
+    selected_company = None
+
+    if request.method == 'POST':
+        selected_major = request.form.get('major')
+        selected_company = request.form.get('company')
+
+        if selected_major and selected_company:
+            try:
+                # AI에게 보낼 프롬프트
+                prompt = f"""
+                당신은 전문 취업 컨설턴트입니다.
+                
+                [사용자 정보]
+                - 전공: {selected_major}
+                - 지원 희망 기업: {selected_company}
+                
+                [요청 사항]
+                위 전공자가 '{selected_company}'에 입사하여 수행할 수 있는 '직무(Job Position)' 5가지를 추천해주세요.
+                기업의 특성과 전공의 연관성을 깊이 있게 분석해야 합니다.
+                
+                [출력 형식]
+                반드시 아래 마크다운 표 형식으로만 출력하세요. 서론이나 결론은 쓰지 마세요.
+                
+                | 추천 직무 | 주요 업무 및 필요 역량 |
+                | --- | --- |
+                | (직무명) | (구체적인 설명 및 전공과의 연결고리) |
+                """
+                
+                chat_completion = client.chat.completions.create(
+                    messages=[{"role": "user", "content": prompt}],
+                    model="llama3-8b-8192", # 또는 gemma-7b-it 등 사용 중인 모델
+                )
+                
+                # 마크다운 결과를 HTML로 변환
+                markdown_text = chat_completion.choices[0].message.content
+                result = markdown.markdown(markdown_text, extensions=['tables'])
+                
+            except Exception as e:
+                flash(f"분석 중 오류 발생: {str(e)}", 'danger')
+
+    return render_template('career.html', majors=MAJORS, result=result, 
+                           sel_major=selected_major, sel_company=selected_company)
 if __name__ == "__main__":
     try:
         init_db()
