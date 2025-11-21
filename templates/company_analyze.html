@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1 class="text-3xl font-bold mb-6">
+  회사 맞춤 분석 <span class="text-ai-purple">Target Company</span>
+</h1>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+  <!-- 왼쪽: 회사/직무 선택 폼 -->
+  <div class="lg:col-span-1">
+    <div class="bg-[#120022] border border-ai-purple rounded-2xl shadow-xl p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-4">목표 설정</h2>
+
+      <form method="post" class="space-y-4">
+        <div>
+          <label class="block text-sm text-gray-300 mb-1">목표 회사</label>
+          <select
+            name="company"
+            class="w-full bg-white text-gray-900 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-ai-purple"
+          >
+            <option value="">-- 회사를 선택하세요 --</option>
+            {% for c in company_options %}
+            <option value="{{ c }}" {% if selected_company == c %}selected{% endif %}>
+              {{ c }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm text-gray-300 mb-1">목표 직무 / 포지션 (선택)</label>
+          <input type="text" name="role"
+                 placeholder="예) 전산직, 데이터 분석, 백엔드 개발"
+                 value="{{ selected_role or '' }}"
+                 class="w-full bg-[#1a0a2e] text-gray-100 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-ai-purple">
+        </div>
+
+        <button type="submit"
+                class="w-full py-2 rounded-lg bg-ai-purple hover:bg-ai-purple-light font-semibold">
+          AI 회사 맞춤 분석 실행
+        </button>
+      </form>
+    </div>
+
+    <!-- 활동 요약 -->
+    <div class="bg-[#120022] border border-ai-purple-light rounded-2xl p-4">
+      <h3 class="text-sm font-semibold mb-2">현재 등록된 활동</h3>
+      <ul class="space-y-2 max-h-64 overflow-y-auto pr-1 text-sm">
+        {% for exp in experiences %}
+        <li class="border-b border-[#2a1640] pb-1">
+          <span class="text-gray-400">[{{ exp['category'] }}]</span>
+          <span class="ml-1">{{ exp['title'] }}</span>
+        </li>
+        {% endfor %}
+        {% if experiences|length == 0 %}
+        <li class="text-gray-400">아직 등록된 활동이 없습니다.</li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+
+  <!-- 오른쪽: 분석 결과 -->
+  <div class="lg:col-span-2">
+    <div class="bg-[#120022] border border-ai-purple rounded-2xl shadow-xl p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold">
+          분석 결과
+          {% if selected_company %}
+            <span class="text-sm text-ai-purple-light">({{ selected_company }})</span>
+          {% endif %}
+        </h2>
+        <span class="text-xs text-gray-400">
+          특정 회사 입사 관점에서 강점/아쉬운 점/액션 플랜을 정리합니다.
+        </span>
+      </div>
+
+      {% if analysis_text %}
+        <div class="bg-[#1a0a2e] rounded-xl p-4 text-sm leading-relaxed whitespace-pre-line">
+          {{ analysis_text }}
+        </div>
+      {% else %}
+        <p class="text-gray-400 text-sm">
+          왼쪽에서 회사와 직무를 선택한 뒤, <span class="text-ai-purple">[AI 회사 맞춤 분석 실행]</span> 버튼을 눌러주세요.
+        </p>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

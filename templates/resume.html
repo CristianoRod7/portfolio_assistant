@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1 class="text-3xl font-bold mb-6">
+  이력서 생성 <span class="text-ai-purple">Resume Builder</span>
+</h1>
+
+<div class="max-w-4xl mx-auto space-y-6">
+
+  <!-- 설정 폼 -->
+  <div class="bg-[#120022] border border-ai-purple rounded-2xl shadow-xl p-6">
+    <h2 class="text-xl font-semibold mb-4">목표 설정</h2>
+
+    <form method="post" class="space-y-4">
+      <div>
+        <label class="block text-sm text-gray-300 mb-1">목표 회사 (선택)</label>
+        <select
+          name="company"
+          class="w-full bg-white text-gray-900 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-ai-purple"
+        >
+          <option value="">-- 회사를 선택하세요 (선택) --</option>
+          {% for c in company_options %}
+          <option value="{{ c }}" {% if target_company == c %}selected{% endif %}>
+            {{ c }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm text-gray-300 mb-1">목표 직무 / 포지션 (선택)</label>
+        <input type="text" name="role"
+               placeholder="예) 전산직, 데이터 분석, 백엔드 개발 등"
+               value="{{ target_role or '' }}"
+               class="w-full bg-[#1a0a2e] text-gray-100 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-ai-purple">
+      </div>
+
+      <button type="submit"
+              class="px-5 py-2 rounded-lg bg-ai-purple hover:bg-ai-purple-light font-semibold">
+        AI로 이력서용 경력 요약 생성
+      </button>
+    </form>
+  </div>
+
+  <!-- 생성된 이력서 내용 -->
+  {% if resume_text %}
+  <div class="no-print flex justify-end mb-2">
+    <button type="button"
+            class="px-4 py-2 rounded-lg border border-gray-400 text-sm hover:bg-gray-700"
+            onclick="window.print()">
+      이 내용 PDF로 저장 (인쇄)
+    </button>
+  </div>
+
+  <div class="bg-white text-gray-900 rounded-2xl shadow-2xl p-8 leading-relaxed">
+    <h2 class="text-2xl font-bold mb-4">경력 및 역량 요약</h2>
+    <div class="whitespace-pre-line text-sm">
+      {{ resume_text }}
+    </div>
+  </div>
+  {% else %}
+  <p class="text-gray-400 text-sm">
+    목표 회사/직무를 설정한 뒤 <span class="text-ai-purple">[AI로 이력서용 경력 요약 생성]</span> 버튼을 누르면
+    아래에 이력서에 붙여넣을 수 있는 내용이 만들어집니다.
+  </p>
+  {% endif %}
+
+</div>
+
+{% endblock %}
