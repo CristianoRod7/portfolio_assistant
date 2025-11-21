@@ -1,266 +1,168 @@
 {% extends "base.html" %}
+
 {% block content %}
+<div class="row g-4">
+    <!-- 좌측: 현황 및 활동 목록 -->
+    <div class="col-lg-8">
+        <!-- 상단: 요약 카드 (Stats) -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card card-dark border-0 h-100">
+                    <div class="card-body p-4">
+                        <h6 class="text-secondary small text-uppercase fw-bold mb-2">Total Experiences</h6>
+                        <h2 class="text-white fw-bold mb-0">{{ total_count }}건</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card card-dark border-0 h-100">
+                    <div class="card-body p-4">
+                        <h6 class="text-secondary small text-uppercase fw-bold mb-2">Total Hours</h6>
+                        <h2 class="text-white fw-bold mb-0">{{ total_hours }}시간</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card card-dark border-0 h-100">
+                    <div class="card-body p-4">
+                        <h6 class="text-secondary small text-uppercase fw-bold mb-2">Categories</h6>
+                        <h2 class="text-white fw-bold mb-0">{{ categories|length }}개</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-<!-- 상단 헤더 -->
-<div class="d-flex justify-content-between align-items-end mb-4">
-  <div>
-    <h1 class="h3 fw-bold mb-1">Dashboard</h1>
-    <p class="text-secondary small mb-0">내 포트폴리오 현황판</p>
-  </div>
-  
-  <!-- ▼▼▼ 관리자(로그인)일 때만 추가 버튼 표시 ▼▼▼ -->
-  {% if logged_in %}
-    <a href="{{ url_for('add') }}" class="btn btn-ai btn-sm px-3">+ 새 활동 추가</a>
-  {% endif %}
-  <!-- ▲▲▲ -->
+        <!-- 차트 및 활동 목록 -->
+        <div class="card card-dark border-0 mb-4">
+            <div class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                <h5 class="text-white fw-bold mb-0">최근 활동 기록</h5>
+                <!-- 검색창 -->
+                <div class="input-group input-group-sm w-auto">
+                    <span class="input-group-text bg-dark border-secondary text-secondary">🔍</span>
+                    <input type="text" id="searchInput" class="form-control bg-dark border-secondary text-white" placeholder="활동 검색..." onkeyup="filterExperiences()">
+                </div>
+            </div>
+            <div class="card-body p-4">
+                {% if experiences %}
+                    <div class="list-group list-group-flush" id="experienceList">
+                        {% for exp in experiences %}
+                        <a href="{{ url_for('experience_detail', exp_id=exp.id) }}" class="list-group-item list-group-item-action bg-transparent border-secondary text-white py-3 exp-item">
+                            <div class="d-flex w-100 justify-content-between align-items-center mb-1">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-{{ exp.status_color }} bg-opacity-10 text-{{ exp.status_color }} border border-{{ exp.status_color }} border-opacity-25 rounded-pill px-2 py-1">
+                                        {{ exp.category }}
+                                    </span>
+                                    <h6 class="mb-0 fw-bold text-truncate" style="max-width: 300px;">{{ exp.title }}</h6>
+                                </div>
+                                <small class="text-secondary">{{ exp.start_date }}</small>
+                            </div>
+                            <p class="mb-1 small text-secondary text-truncate">{{ exp.description }}</p>
+                            <div class="mt-2">
+                                {% if exp.skills %}
+                                    {% for skill in exp.skills.split(',') %}
+                                        <span class="badge bg-secondary bg-opacity-25 text-light fw-normal me-1">#{{ skill.strip() }}</span>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <p class="text-secondary mb-3">아직 등록된 활동이 없습니다.</p>
+                        {% if logged_in %}
+                            <a href="{{ url_for('add') }}" class="btn btn-ai">첫 활동 추가하기</a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 우측: AI 도구 모음 (사이드바) -->
+    <div class="col-lg-4">
+        <div class="card card-dark border-0 sticky-top" style="top: 100px; z-index: 1;">
+            <div class="card-body p-4">
+                <h6 class="text-secondary small fw-bold mb-3">AI ASSISTANT TOOLS</h6>
+                
+                <div class="d-grid gap-3">
+                    <!-- ▼▼▼ [추가됨] 진로 탐색 버튼 ▼▼▼ -->
+                    <a href="{{ url_for('career') }}" class="btn btn-outline-light text-start p-3 d-flex align-items-center justify-content-between group-hover">
+                        <div class="d-flex align-items-center">
+                            <span class="fs-4 me-3">🎓</span>
+                            <div class="lh-sm">
+                                <div class="fw-bold text-info">학과 기반 진로 탐색</div>
+                                <div class="small text-secondary" style="font-size: 0.75rem;">내 전공으로 갈 수 있는 직무 찾기</div>
+                            </div>
+                        </div>
+                        <span class="text-secondary">→</span>
+                    </a>
+                    <!-- ▲▲▲ -->
+
+                    <a href="{{ url_for('analyze') }}" class="btn btn-outline-light text-start p-3 d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <span class="fs-4 me-3">🔮</span>
+                            <div class="lh-sm">
+                                <div class="fw-bold">전체 포트폴리오 진단</div>
+                                <div class="small text-secondary" style="font-size: 0.75rem;">강점/약점 분석 및 개선점 제안</div>
+                            </div>
+                        </div>
+                        <span class="text-secondary">→</span>
+                    </a>
+
+                    <a href="{{ url_for('company_analyze') }}" class="btn btn-outline-light text-start p-3 d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <span class="fs-4 me-3">🏢</span>
+                            <div class="lh-sm">
+                                <div class="fw-bold">기업별 합격 확률 분석</div>
+                                <div class="small text-secondary" style="font-size: 0.75rem;">지원 기업 맞춤형 스펙 진단</div>
+                            </div>
+                        </div>
+                        <span class="text-secondary">→</span>
+                    </a>
+
+                    <a href="{{ url_for('resume') }}" class="btn btn-outline-light text-start p-3 d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <span class="fs-4 me-3">📄</span>
+                            <div class="lh-sm">
+                                <div class="fw-bold">이력서 핵심 경력 생성</div>
+                                <div class="small text-secondary" style="font-size: 0.75rem;">AI가 정리해주는 경력 기술서</div>
+                            </div>
+                        </div>
+                        <span class="text-secondary">→</span>
+                    </a>
+
+                    <a href="{{ url_for('cover_letter') }}" class="btn btn-outline-light text-start p-3 d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <span class="fs-4 me-3">✍️</span>
+                            <div class="lh-sm">
+                                <div class="fw-bold">자기소개서 초안 작성</div>
+                                <div class="small text-secondary" style="font-size: 0.75rem;">직무 역량 기반 자소서 생성</div>
+                            </div>
+                        </div>
+                        <span class="text-secondary">→</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-
-<!-- 메인 그리드 레이아웃 (Bento Grid) -->
-<div class="row g-3">
-  
-  <!-- 1. 통계 카드 (좌측 상단) -->
-  <div class="col-12 col-lg-8">
-    <div class="row g-3 h-100">
-      <div class="col-md-4">
-        <div class="card card-dark p-4 h-100 d-flex flex-column justify-content-center text-center">
-          <span class="display-5 fw-bold text-white">{{ total_count or 0 }}</span>
-          <span class="small text-secondary text-uppercase tracking-wider">Projects</span>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="card card-dark p-4 h-100 d-flex flex-column justify-content-center text-center">
-          <span class="display-5 fw-bold text-white">{{ total_hours or 0 }}</span>
-          <span class="small text-secondary text-uppercase tracking-wider">Hours</span>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="card card-dark p-4 h-100 d-flex flex-column justify-content-center text-center">
-          <span class="display-5 fw-bold text-white">{{ categories|length }}</span>
-          <span class="small text-secondary text-uppercase tracking-wider">Categories</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 2. AI 퀵 액션 (우측 상단) -->
-  <div class="col-12 col-lg-4">
-    <div class="card card-dark p-4 h-100">
-      <h6 class="text-uppercase text-secondary small fw-bold mb-3">AI Assistant Tools</h6>
-      <div class="d-grid gap-2">
-        <a href="{{ url_for('analyze') }}" class="btn btn-outline-light btn-sm text-start py-2">
-          🔮 전체 포트폴리오 진단
-        </a>
-        <a href="{{ url_for('company_analyze') }}" class="btn btn-outline-light btn-sm text-start py-2">
-          🏢 기업별 합격 확률 분석
-        </a>
-        <a href="{{ url_for('resume') }}" class="btn btn-outline-light btn-sm text-start py-2">
-          📄 이력서 핵심 경력 생성
-        </a>
-        <a href="{{ url_for('cover_letter') }}" class="btn btn-outline-light btn-sm text-start py-2">
-          ✍️ 자기소개서 초안 작성
-        </a>
-      </div>
-    </div>
-  </div>
-
-  <!-- 3. 스킬 레이더 차트 (중간) -->
-  <div class="col-12">
-    <div class="card card-dark p-4">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="fw-bold mb-0 text-white">My Skill Radar</h5>
-        <span class="badge bg-secondary bg-opacity-25 text-secondary">Auto-generated</span>
-      </div>
-      
-      <!-- 차트 영역 컨테이너 -->
-      <div style="position: relative; height: 300px; width: 100%; display: flex; justify-content: center;">
-        <canvas id="skillChart"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- 4. 활동 목록 리스트 (하단) + 검색 기능 -->
-  <div class="col-12">
-    <div class="card card-dark p-4">
-      
-      <!-- 헤더 + 검색창 -->
-      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-        <h5 class="mb-0 fw-bold">Recent Activities</h5>
-        <input type="text" id="searchInput" class="form-control bg-dark text-white border-secondary form-control-sm" 
-               style="max-width: 250px;" placeholder="🔍 제목, 기술, 카테고리 검색...">
-      </div>
-
-      {% if experiences %}
-      <div class="table-responsive">
-        <table class="table table-dark table-hover mb-0" style="--bs-table-bg: transparent;">
-          <thead>
-            <tr class="text-secondary small text-uppercase">
-              <th>Status</th>
-              <th>Title</th>
-              <th>Category</th>
-              <th>Duration</th>
-              <th></th>
-            </tr>
-          </thead>
-          <!-- tbody에 id 추가 (검색용) -->
-          <tbody id="tableBody">
-            {% for exp in experiences %}
-            <!-- 검색 필터링을 위한 데이터 속성 추가 -->
-            <tr data-filter="{{ exp.title }} {{ exp.category }} {{ exp.skills }}">
-              <td class="align-middle">
-                <span class="badge rounded-pill bg-{{ exp.status_color }} bg-opacity-10 text-{{ exp.status_color }}">
-                  {{ exp.status_label }}
-                </span>
-              </td>
-              <td class="align-middle fw-semibold">{{ exp.title }}</td>
-              <td class="align-middle text-secondary small">{{ exp.category }}</td>
-              <td class="align-middle text-secondary small">
-                {{ exp.start_date }} ~
-              </td>
-              <td class="text-end">
-                <a href="{{ url_for('experience_detail', exp_id=exp.id) }}" class="btn btn-sm btn-link text-decoration-none text-white">View →</a>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-
-      <!-- 검색 결과 없을 때 메시지 -->
-      <div id="noResultMsg" class="text-center py-5 text-secondary d-none">
-        검색 결과가 없습니다.
-      </div>
-
-      {% else %}
-        <div class="text-center py-5 text-secondary">
-          아직 등록된 활동이 없습니다. <br>우측 상단 버튼을 눌러 추가해보세요!
-        </div>
-      {% endif %}
-    </div>
-  </div>
-</div>
-
-<!-- Chart.js 라이브러리 -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-  // ==========================================
-  // 1. 스킬 차트 로직
-  // ==========================================
-  const skillCounts = {};
-  
-  // Jinja2 데이터를 JS로 변환
-  {% for exp in experiences %}
-    var skillsRaw = "{{ exp.skills or '' }}";
-    if (skillsRaw) {
-      // HTML 엔티티 디코딩 방지 및 쉼표 분리
-      var tempDiv = document.createElement("div");
-      tempDiv.innerHTML = skillsRaw;
-      var cleanSkills = tempDiv.textContent || tempDiv.innerText || "";
-      
-      var skills = cleanSkills.split(',');
-      skills.forEach(function(s) {
-        var key = s.trim();
-        if(key) {
-          // 대소문자 통일해서 카운트 (Python vs python 방지)
-          // 화면 표시용 키는 원래대로 유지하려면 별도 매핑 필요하지만 여기선 간단히 처리
-          skillCounts[key] = (skillCounts[key] || 0) + 1;
+function filterExperiences() {
+    const input = document.getElementById('searchInput');
+    const filter = input.value.toLowerCase();
+    const list = document.getElementById('experienceList');
+    const items = list.getElementsByClassName('exp-item');
+
+    for (let i = 0; i < items.length; i++) {
+        const text = items[i].textContent || items[i].innerText;
+        if (text.toLowerCase().indexOf(filter) > -1) {
+            items[i].style.display = "";
+        } else {
+            items[i].style.display = "none";
         }
-      });
     }
-  {% endfor %}
-
-  let labels = Object.keys(skillCounts);
-  let dataPoints = Object.values(skillCounts);
-
-  // 데이터가 없을 때 보여줄 예시 데이터
-  if (labels.length === 0) {
-    labels = ['Python', 'Communication', 'Data Analysis', 'Problem Solving', 'Teamwork'];
-    dataPoints = [4, 3, 5, 4, 3];
-  }
-
-  const ctx = document.getElementById('skillChart');
-  if (ctx) {
-    new Chart(ctx, {
-      type: 'radar',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Skill Relevance',
-          data: dataPoints,
-          backgroundColor: 'rgba(139, 92, 246, 0.2)',
-          borderColor: '#8b5cf6',
-          pointBackgroundColor: '#fff',
-          pointBorderColor: '#8b5cf6',
-          borderWidth: 2,
-          pointHoverBackgroundColor: '#fff',
-          pointHoverBorderColor: '#8b5cf6'
-        }]
-      },
-      options: {
-        maintainAspectRatio: false,
-        elements: { line: { tension: 0.3 } },
-        scales: {
-          r: {
-            angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
-            grid: { color: 'rgba(255, 255, 255, 0.1)' },
-            pointLabels: { color: '#cbd5e1', font: { size: 12, family: "'Inter', sans-serif" } },
-            ticks: { display: false, backdropColor: 'transparent' },
-            suggestedMin: 0, 
-            suggestedMax: 5
-          }
-        },
-        plugins: { 
-          legend: { display: false }, 
-          tooltip: { 
-            backgroundColor: 'rgba(0, 0, 0, 0.8)', 
-            titleColor: '#fff', 
-            bodyColor: '#fff', 
-            padding: 10, 
-            cornerRadius: 8, 
-            displayColors: false 
-          } 
-        }
-      }
-    });
-  }
-
-  // ==========================================
-  // 2. 실시간 검색 로직
-  // ==========================================
-  const searchInput = document.getElementById('searchInput');
-  const tableBody = document.getElementById('tableBody');
-  const noResultMsg = document.getElementById('noResultMsg');
-
-  if (searchInput && tableBody) {
-    searchInput.addEventListener('keyup', function() {
-      const filter = this.value.toLowerCase();
-      const rows = tableBody.getElementsByTagName('tr');
-      let hasResult = false;
-
-      for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        // data-filter 속성 값을 가져와서 비교
-        const text = row.getAttribute('data-filter').toLowerCase();
-        
-        if (text.includes(filter)) {
-          row.style.display = '';
-          hasResult = true;
-        } else {
-          row.style.display = 'none';
-        }
-      }
-
-      // 결과 없음 메시지 표시 여부
-      if (noResultMsg) {
-        if (hasResult) {
-          noResultMsg.classList.add('d-none');
-        } else {
-          noResultMsg.classList.remove('d-none');
-        }
-      }
-    });
-  }
-});
+}
 </script>
 {% endblock %}
