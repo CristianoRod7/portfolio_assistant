@@ -1,88 +1,118 @@
 {% extends "base.html" %}
+
 {% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card card-dark border-0 mb-4">
+            <div class="card-body p-5">
+                <h2 class="fw-bold mb-2 text-white">📊 AI 합격 확률 분석기</h2>
+                <p class="text-secondary mb-4">
+                    내 활동 이력으로 이 기업, 이 직무에 합격할 확률은 얼마일까요?
+                </p>
 
-<h2 class="h4 mb-4 fw-bold">🎯 기업 맞춤 합격 분석</h2>
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label text-warning fw-bold">전공 선택</label>
+                        <select id="majorSelect" class="form-select bg-dark text-white border-secondary p-3" onchange="updateJobs()">
+                            <option value="">학과를 선택하세요...</option>
+                            <optgroup label="공학계열">
+                                <option value="건설안전방재학과">건설안전방재학과</option>
+                                <option value="환경에너지학과">환경에너지학과</option>
+                                <option value="소방안전관리학과">소방안전관리학과</option>
+                                <option value="전기전자공학과">전기전자공학과</option>
+                                <option value="컴퓨터공학과">컴퓨터공학과</option>
+                                <option value="건축인테리어학과">건축인테리어학과</option>
+                                <option value="첨단기술융합학부">첨단기술융합학부</option>
+                            </optgroup>
+                            <optgroup label="인문사회계열">
+                                <option value="자치행정학과">자치행정학과</option>
+                                <option value="경찰행정학과">경찰행정학과</option>
+                                <option value="토지행정학과">토지행정학과</option>
+                            </optgroup>
+                            <optgroup label="자연과학계열">
+                                <option value="호텔조리제빵학과">호텔조리제빵학과</option>
+                                <option value="뷰티코디네이션학과">뷰티코디네이션학과</option>
+                                <option value="작업치료학과">작업치료학과</option>
+                                <option value="스마트팜학과">스마트팜학과</option>
+                            </optgroup>
+                        </select>
+                    </div>
 
-<!-- 입력 폼 영역 -->
-<div class="card card-dark p-4 mb-5">
-  <form method="post" class="row g-3 align-items-end">
-    <div class="col-md-4">
-      <label class="form-label text-secondary small">지원할 회사</label>
-      <select name="company" class="form-select bg-dark text-white border-secondary">
-        <option value="">선택하세요</option>
-        {% for c in company_options %}
-          <option value="{{ c }}" {% if target_company == c %}selected{% endif %}>{{ c }}</option>
-        {% endfor %}
-      </select>
+                    <div class="mb-3">
+                        <label class="form-label text-info fw-bold">분석할 기업</label>
+                        <input type="text" name="company" class="form-control bg-dark text-white border-secondary p-3" placeholder="예: 네이버, 현대자동차" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label text-success fw-bold">목표 직무</label>
+                        <select id="jobSelect" name="job" class="form-select bg-dark text-white border-secondary p-3" required>
+                            <option value="">학과를 먼저 선택해주세요</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-ai btn-lg w-100 shadow-lg">합격 확률 분석하기</button>
+                </form>
+            </div>
+        </div>
+
+        {% if result %}
+        <div class="card card-dark border-0 animate-slide-up">
+            <div class="card-header border-secondary bg-transparent py-3">
+                <h5 class="mb-0 text-white">📊 합격 확률 분석 결과</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="markdown-body">
+                    {{ result | safe }}
+                </div>
+                <div class="mt-4 text-end">
+                    <a href="{{ url_for('company_analyze') }}" class="btn btn-outline-secondary btn-sm">다시 분석하기</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
+</div>
+
+<script>
+function updateJobs() {
+    const major = document.getElementById("majorSelect").value;
+    const jobSelect = document.getElementById("jobSelect");
     
-    <!-- 직무 선택 (수정됨) -->
-    <div class="col-md-6">
-      <label class="form-label text-secondary small">지원 직무 (Position)</label>
-      <input type="text" name="role" list="roleOptions" 
-             class="form-control bg-dark text-white border-secondary"
-             placeholder="직무를 선택하거나 직접 입력하세요"
-             value="{{ target_role or '' }}" autocomplete="off">
-      
-      <!-- 주요 IT 직무 리스트 -->
-      <datalist id="roleOptions">
-        <!-- 개발 직군 -->
-        <option value="백엔드 개발자 (Backend Developer)">
-        <option value="프론트엔드 개발자 (Frontend Developer)">
-        <option value="풀스택 개발자 (Full Stack Developer)">
-        <option value="모바일 앱 개발자 (Android/iOS)">
-        <option value="데이터 엔지니어 (Data Engineer)">
-        <option value="데이터 분석가 (Data Analyst)">
-        <option value="인공지능/머신러닝 엔지니어 (AI/ML)">
-        <option value="DevOps/SRE 엔지니어">
-        <option value="보안 엔지니어 (Security)">
-        <option value="임베디드 소프트웨어 개발자">
-        <!-- 공기업/대기업 공통 -->
-        <option value="SW 개발 / 전산직">
-        <option value="ICT / 정보보호">
-        <option value="IT 서비스 기획 (PM/PO)">
-        <option value="R&D (연구개발)">
-        <option value="시스템 엔지니어 (System Engineer)">
-      </datalist>
-    </div>
+    const jobsData = {
+        "건설안전방재학과": ["건설안전기사", "산업안전관리자", "방재전문가", "토목 시공 관리자", "안전진단 컨설턴트"],
+        "환경에너지학과": ["대기환경기사", "수질환경기사", "폐기물처리 기사", "환경영향평가원", "신재생에너지 전문가"],
+        "소방안전관리학과": ["소방공무원", "소방설비기사(전기/기계)", "소방안전관리자", "위험물안전관리자", "소방시설 점검단"],
+        "전기전자공학과": ["전기기사", "전기설비 엔지니어", "자동제어(PLC) 전문가", "반도체 설비 엔지니어", "전자회로 설계자"],
+        "컴퓨터공학과": ["백엔드 개발자", "프론트엔드 개발자", "풀스택 개발자", "정보보안 전문가", "네트워크 엔지니어", "AI/데이터 엔지니어"],
+        "건축인테리어학과": ["실내건축기사", "인테리어 디자이너", "CAD 설계직", "건축 시공 관리자", "VMD(비주얼 머천다이저)"],
+        "첨단기술융합학부": ["드론 조종 및 정비", "3D 프린팅 전문가", "스마트 팩토리 운영", "로봇 제어 엔지니어"],
+        "자치행정학과": ["일반행정직 공무원", "공공기관 사무직", "총무/인사 담당자", "비서 및 사무보조", "사회복지 공무원"],
+        "경찰행정학과": ["경찰공무원", "해양경찰", "교정직 공무원", "민간 경비/보안 전문가", "청원경찰"],
+        "토지행정학과": ["지적직 공무원", "한국국토정보공사(LX) 직원", "감정평가사 보조", "부동산 컨설턴트", "도시계획 기사"],
+        "호텔조리제빵학과": ["호텔 셰프(양식/한식)", "제과제빵사(Patissier)", "메뉴 개발자(R&D)", "푸드 스타일리스트", "단체급식 조리사"],
+        "뷰티코디네이션학과": ["헤어 디자이너", "메이크업 아티스트", "피부관리사(Esthetician)", "네일 아티스트", "화장품 브랜드 매니저"],
+        "작업치료학과": ["작업치료사", "발달재활서비스 제공자", "치매안심센터 전담인력", "보조공학사", "노인주간보호센터 관리자"],
+        "스마트팜학과": ["스마트팜 운영 관리자", "시설원예 기사", "농업직 공무원", "농산물 품질 관리사", "농업경영 컨설턴트"]
+    };
 
-    <div class="col-md-2">
-      <button type="submit" class="btn btn-ai w-100">분석 시작</button>
-    </div>
-  </form>
-</div>
+    jobSelect.innerHTML = "";
 
-<!-- 결과 영역 -->
-{% if ai_result %}
-<div class="d-flex justify-content-end mb-2">
-  <button class="btn btn-sm btn-outline-light" onclick="window.print()">🖨️ 결과 저장 (PDF)</button>
-</div>
-
-<div class="card card-dark p-4 border-primary border-opacity-50 mb-4">
-  <div class="mb-4 pb-3 border-bottom border-secondary border-opacity-25">
-    <h3 class="h5 mb-1 text-white">Analysis Report</h3>
-    <p class="small text-secondary mb-0">
-      <span class="text-info">{{ target_company }}</span> - 
-      <span class="text-info">{{ target_role }}</span> 직무 기준 분석 결과
-    </p>
-  </div>
-  
-  <!-- 마크다운 렌더링 -->
-  <div class="markdown-body">
-    {{ ai_result | safe }}
-  </div>
-</div>
-
-<!-- 면책 조항 -->
-<div class="alert alert-warning bg-opacity-10 border-warning border-opacity-25 text-warning d-flex align-items-center" role="alert">
-  <span class="fs-4 me-3">⚠️</span>
-  <div class="small">
-    <strong>AI 분석 결과는 참고용입니다.</strong><br>
-    실제 채용 공고의 우대 사항이나 인재상은 수시로 변경될 수 있습니다.<br>
-    지원 전 반드시 <a href="https://www.google.com/search?q={{ target_company }} 채용" target="_blank" class="alert-link">공식 채용 사이트</a>를 확인하시기 바랍니다.
-  </div>
-</div>
-
-{% endif %}
-
+    if (major && jobsData[major]) {
+        jobsData[major].forEach(function(job) {
+            let option = document.createElement("option");
+            option.value = job;
+            option.text = job;
+            jobSelect.appendChild(option);
+        });
+        let otherOption = document.createElement("option");
+        otherOption.value = "직접입력";
+        otherOption.text = "기타 (직접 입력)";
+        jobSelect.appendChild(otherOption);
+    } else {
+        let option = document.createElement("option");
+        option.text = "학과를 먼저 선택하세요";
+        jobSelect.appendChild(option);
+    }
+}
+</script>
 {% endblock %}
