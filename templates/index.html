@@ -1,10 +1,13 @@
 {% extends "base.html" %}
 
 {% block content %}
+<!-- Chart.js 라이브러리 추가 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <div class="row g-4">
     <!-- 좌측: 현황 및 활동 목록 -->
     <div class="col-lg-8">
-        <!-- 상단: 요약 카드 (Stats) -->
+        <!-- 1. 상단: 요약 카드 (Stats) -->
         <div class="row g-3 mb-4">
             <div class="col-md-4">
                 <div class="card card-dark border-0 h-100">
@@ -32,20 +35,34 @@
             </div>
         </div>
 
-        <!-- 차트 및 활동 목록 -->
+        <!-- 2. 활동 통계 그래프 섹션 -->
+        <div class="card card-dark border-0 mb-4">
+            <div class="card-header bg-transparent border-0 pt-4 px-4">
+                <h5 class="text-white fw-bold mb-0">📊 활동 카테고리 통계</h5>
+            </div>
+            <div class="card-body p-4">
+                {% if categories %}
+                    <div style="height: 250px;">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                {% else %}
+                    <p class="text-secondary text-center py-5">데이터가 있으면 여기에 그래프가 표시됩니다.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 3. 활동 목록 리스트 -->
         <div class="card card-dark border-0 mb-4">
             <div class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <div class="d-flex align-items-center gap-3">
                     <h5 class="text-white fw-bold mb-0">최근 활동 기록</h5>
                     {% if logged_in %}
-                        <!-- ▼▼▼ [추가됨] 항상 보이는 추가 버튼 ▼▼▼ -->
                         <a href="{{ url_for('add') }}" class="btn btn-sm btn-ai rounded-pill px-3">
                             + 활동 추가
                         </a>
                     {% endif %}
                 </div>
                 
-                <!-- 검색창 -->
                 <div class="input-group input-group-sm w-auto">
                     <span class="input-group-text bg-dark border-secondary text-secondary">🔍</span>
                     <input type="text" id="searchInput" class="form-control bg-dark border-secondary text-white" placeholder="활동 검색..." onkeyup="filterExperiences()">
@@ -156,6 +173,7 @@
 </div>
 
 <script>
+// 1. 검색 필터 로직
 function filterExperiences() {
     const input = document.getElementById('searchInput');
     const filter = input.value.toLowerCase();
@@ -171,5 +189,75 @@ function filterExperiences() {
         }
     }
 }
+
+// 2. 차트 렌더링 로직 (수정됨: Jinja2 if문 제거 및 안전한 데이터 주입)
+document.addEventListener("DOMContentLoaded", function() {
+    // Jinja2 데이터를 자바스크립트 변수로 안전하게 변환 (기본값 빈 배열)
+    const rawData = {{ categories | tojson | default('[]') | safe }};
+    
+    // 데이터가 있을 때만 차트 생성
+    if (rawData && rawData.length > 0) {
+        const ctxElement = document.getElementById('categoryChart');
+        
+        if (ctxElement) {
+            const ctx = ctxElement.getContext('2d');
+            
+            const labels = rawData.map(item => item.category);
+            const data = rawData.map(item => item.cnt);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '활동 수',
+                        data: data,
+                        backgroundColor: [
+                            'rgba(139, 92, 246, 0.6)',
+                            'rgba(59, 130, 246, 0.6)',
+                            'rgba(16, 185, 129, 0.6)',
+                            'rgba(245, 158, 11, 0.6)',
+                            'rgba(239, 68, 68, 0.6)',
+                            'rgba(236, 72, 153, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgba(139, 92, 246, 1)',
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(245, 158, 11, 1)',
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(236, 72, 153, 1)'
+                        ],
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1, color: '#a1a1aa' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x: {
+                            ticks: { color: '#a1a1aa' },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+    }
+});
 </script>
 {% endblock %}
