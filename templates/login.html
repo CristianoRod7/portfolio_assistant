@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row justify-content-center align-items-center" style="height: 60vh;">
+  <div class="col-md-4">
+    <div class="card card-dark p-4 text-center border-primary border-opacity-50 shadow-lg">
+      <div class="mb-4">
+        <span class="display-6">🔒</span>
+      </div>
+      <h3 class="h5 fw-bold mb-3 text-white">관리자 로그인</h3>
+      <p class="text-secondary small mb-4">포트폴리오 관리자만 접속 가능합니다.</p>
+      
+      {% if error %}
+        <div class="alert alert-danger py-2 small bg-danger bg-opacity-10 text-danger border-danger border-opacity-25">
+          {{ error }}
+        </div>
+      {% endif %}
+      
+      <!-- 플래시 메시지 (로그인 필요 등) -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} py-2 small">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="post">
+        <div class="mb-3">
+          <input type="password" name="password" 
+                 class="form-control bg-dark text-white border-secondary text-center py-2" 
+                 placeholder="비밀번호 입력" required autofocus>
+        </div>
+        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
+          Login Access
+        </button>
+      </form>
+    </div>
+    
+    <div class="text-center mt-4">
+      <a href="{{ url_for('index') }}" class="text-secondary text-decoration-none small">
+        ← 메인으로 돌아가기
+      </a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

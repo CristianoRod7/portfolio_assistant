@@ -6,6 +6,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime
 import markdown
+from functools import wraps
 
 from flask import (
     Flask,
@@ -15,7 +16,8 @@ from flask import (
     url_for,
     abort,
     Response,
-    flash
+    flash,
+    session
 )
 from groq import Groq
 
@@ -24,7 +26,8 @@ from groq import Groq
 # =========================
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "super_secret_key")  # 플래시 메시지 사용 시 필요
+# 세션 보안을 위한 키 (Render Environment에 SECRET_KEY를 등록하면 더 좋음)
+app.secret_key = os.environ.get("SECRET_KEY", "dev_secret_key_12345")
 
 # Groq 클라이언트
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
@@ -35,44 +38,51 @@ COMPANY_OPTIONS = [
 ]
 
 # =========================
-# DB 유틸 (PostgreSQL 버전)
+# DB 유틸 (PostgreSQL)
 # =========================
 
 def get_db_connection():
     """PostgreSQL DB 연결 함수"""
     db_url = os.getenv("DATABASE_URL")
     if not db_url:
-        raise RuntimeError("DATABASE_URL 환경변수가 설정되지 않았습니다!")
+        # 로컬 테스트용 예외처리 (Render에서는 발생 안 함)
+        print("⚠️ 경고: DATABASE_URL이 없습니다.")
+        return None
     
     conn = psycopg2.connect(db_url, cursor_factory=RealDictCursor)
     return conn
 
 def init_db():
     """테이블 생성 (서버 시작 시 실행)"""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    
-    # PostgreSQL용 테이블 생성 쿼리 (SERIAL = 자동증가 ID)
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS experience (
-            id SERIAL PRIMARY KEY,
-            category VARCHAR(100) NOT NULL,
-            title VARCHAR(255) NOT NULL,
-            description TEXT,
-            start_date VARCHAR(20),
-            end_date VARCHAR(20),
-            skills TEXT,
-            hours INTEGER DEFAULT 0,
-            created_at VARCHAR(50)
-        );
-    """)
-    conn.commit()
-    cur.close()
-    conn.close()
-    print("✅ PostgreSQL initialized")
+    try:
+        conn = get_db_connection()
+        if not conn: return
+
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS experience (
+                id SERIAL PRIMARY KEY,
+                category VARCHAR(100) NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                description TEXT,
+                start_date VARCHAR(20),
+                end_date VARCHAR(20),
+                skills TEXT,
+                hours INTEGER DEFAULT 0,
+                created_at VARCHAR(50)
+            );
+        """)
+        conn.commit()
+        cur.close()
+        conn.close()
+        print("✅ PostgreSQL initialized")
+    except Exception as e:
+        print(f"❌ DB Init Error: {e}")
 
 def fetch_all_experiences(order_by_recent=True):
     conn = get_db_connection()
+    if not conn: return []
+    
     cur = conn.cursor()
     try:
         sql = "SELECT * FROM experience"
@@ -81,6 +91,9 @@ def fetch_all_experiences(order_by_recent=True):
         cur.execute(sql)
         rows = cur.fetchall()
         return rows
+    except Exception as e:
+        print(f"Fetch Error: {e}")
+        return []
     finally:
         cur.close()
         conn.close()
@@ -89,7 +102,6 @@ def build_portfolio_text(exps):
     lines = []
     today = datetime.now().strftime("%Y-%m-%d")
     for e in exps:
-        # 날짜 비교 로직
         status = "진행 중"
         if e['end_date'] and e['end_date'] < today:
             status = "완료"
@@ -103,6 +115,41 @@ def build_portfolio_text(exps):
 """
         lines.append(line)
     return "\n".join(lines)
+
+# =========================
+# 보안 (로그인 체크 데코레이터)
+# =========================
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('logged_in'):
+            flash("관리자 로그인이 필요합니다.", "warning")
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error = None
+    if request.method == 'POST':
+        # Render 환경변수 ADMIN_PASSWORD와 비교 (기본값 1234)
+        admin_pw = os.getenv("ADMIN_PASSWORD", "1234")
+        
+        input_pw = request.form.get('password')
+        if input_pw == admin_pw:
+            session['logged_in'] = True
+            flash("성공적으로 로그인되었습니다.", "success")
+            return redirect(url_for('index'))
+        else:
+            error = '비밀번호가 틀렸습니다.'
+    return render_template('login.html', error=error)
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    flash("로그아웃 되었습니다.", "info")
+    return redirect(url_for('index'))
 
 # =========================
 # Groq AI 유틸
@@ -128,33 +175,33 @@ def call_groq(prompt: str, system_msg: str) -> str:
         return f"<p style='color:red;'>AI 호출 중 오류 발생: {str(e)}</p>"
 
 # =========================
-# 라우트
+# 메인 라우트
 # =========================
 
 @app.route("/")
 def index():
     # DB 연결 및 조회
+    exps = []
+    total_hours = 0
+    categories = []
+    
     try:
         conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM experience ORDER BY start_date DESC")
-        exps = cur.fetchall()
-        
-        # 통계 (Postgres는 COUNT, SUM 문법 동일)
-        cur.execute("SELECT SUM(hours) as total_hours FROM experience")
-        row = cur.fetchone()
-        total_hours = row['total_hours'] if row and row['total_hours'] else 0
-        
-        cur.execute("SELECT category, COUNT(*) as cnt FROM experience GROUP BY category")
-        categories = cur.fetchall()
-        
-        cur.close()
-        conn.close()
+        if conn:
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM experience ORDER BY start_date DESC")
+            exps = cur.fetchall()
+            
+            cur.execute("SELECT SUM(hours) as total_hours FROM experience")
+            row = cur.fetchone()
+            total_hours = row['total_hours'] if row and row['total_hours'] else 0
+            
+            cur.execute("SELECT category, COUNT(*) as cnt FROM experience GROUP BY category")
+            categories = cur.fetchall()
+            cur.close()
+            conn.close()
     except Exception as e:
-        # DB 연결 실패 시 에러 페이지 대신 빈 데이터 보여주기 (혹은 디버깅용)
-        print(f"DB Error: {e}")
-        exps, total_hours, categories = [], 0, []
-        total_count = 0
+        print(f"Index DB Error: {e}")
 
     total_count = len(exps)
     
@@ -180,9 +227,13 @@ def index():
         total_count=total_count,
         total_hours=total_hours,
         categories=categories,
+        logged_in=session.get('logged_in') # 로그인 상태 전달
     )
 
+# 글쓰기, 수정, 삭제는 로그인 필수!
+
 @app.route("/add", methods=["GET", "POST"])
+@login_required
 def add():
     if request.method == "POST":
         category = request.form.get("category", "").strip()
@@ -200,7 +251,6 @@ def add():
 
         conn = get_db_connection()
         cur = conn.cursor()
-        # Postgres는 %s 플레이스홀더 사용
         cur.execute(
             """
             INSERT INTO experience (category, title, description, start_date, end_date, skills, hours, created_at)
@@ -216,6 +266,7 @@ def add():
     return render_template("add.html")
 
 @app.route("/edit/<int:exp_id>", methods=["GET", "POST"])
+@login_required
 def edit(exp_id):
     conn = get_db_connection()
     cur = conn.cursor()
@@ -253,6 +304,7 @@ def edit(exp_id):
     return render_template("add.html", exp=exp, is_edit=True)
 
 @app.route("/delete/<int:exp_id>")
+@login_required
 def delete(exp_id):
     conn = get_db_connection()
     cur = conn.cursor()
@@ -272,10 +324,12 @@ def experience_detail(exp_id):
     conn.close()
     if not exp:
         abort(404)
-    return render_template("experience_detail.html", exp=exp)
+    
+    # 상세페이지에서도 수정/삭제 버튼 노출 여부 판단을 위해 logged_in 전달
+    return render_template("experience_detail.html", exp=exp, logged_in=session.get('logged_in'))
 
 # =========================
-# AI 분석 기능들
+# AI 분석 기능들 (공개)
 # =========================
 
 @app.route("/analyze")
@@ -396,32 +450,28 @@ def cover_letter():
     )
 
 # =========================
-# 엑셀(CSV) 백업 & 복구 (Postgres 버전)
+# 엑셀 백업 (관리자 전용)
 # =========================
 
 @app.route("/backup", methods=["GET", "POST"])
+@login_required
 def backup_page():
     return render_template("backup.html")
 
 @app.route("/api/export")
+@login_required
 def export_data():
-    """DB 데이터를 엑셀(CSV) 파일로 다운로드"""
     exps = fetch_all_experiences(order_by_recent=False)
-
     output = io.StringIO()
     writer = csv.writer(output)
-    
-    # 헤더
     headers = ['id', '카테고리', '제목', '설명', '시작일', '종료일', '기술스택', '투입시간', '생성일']
     writer.writerow(headers)
-
     for row in exps:
         writer.writerow([
             row['id'], row['category'], row['title'], row['description'],
             row['start_date'], row['end_date'], row['skills'],
             row['hours'], row['created_at']
         ])
-
     output.seek(0)
     return Response(
         output.getvalue().encode("utf-8-sig"),
@@ -430,31 +480,21 @@ def export_data():
     )
 
 @app.route("/api/import", methods=["POST"])
+@login_required
 def import_data():
-    """엑셀(CSV) 파일을 업로드해서 DB에 복구"""
-    if 'file' not in request.files:
-        return "파일이 없습니다.", 400
-        
+    if 'file' not in request.files: return "파일 없음", 400
     file = request.files['file']
-    if file.filename == '':
-        return "파일을 선택해주세요.", 400
+    if file.filename == '': return "파일 선택 안함", 400
 
     try:
         stream = io.TextIOWrapper(file.stream, encoding='utf-8-sig')
         csv_input = csv.DictReader(stream)
-
         conn = get_db_connection()
         cur = conn.cursor()
-
-        # 기존 데이터 유지한 채로 추가 (삭제 원하면 아래 주석 해제)
-        # cur.execute("DELETE FROM experience") 
-
         for row in csv_input:
-            # CSV 키값과 DB 컬럼명 매핑
             cur.execute(
                 """
-                INSERT INTO experience 
-                (category, title, description, start_date, end_date, skills, hours, created_at)
+                INSERT INTO experience (category, title, description, start_date, end_date, skills, hours, created_at)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
@@ -463,27 +503,23 @@ def import_data():
                     row.get('기술스택'), row.get('투입시간'), row.get('생성일')
                 )
             )
-        
         conn.commit()
         cur.close()
         conn.close()
-        
+        flash("데이터가 성공적으로 복구되었습니다.", "success")
         return redirect(url_for('index'))
-        
     except Exception as e:
-        return f"엑셀 복구 실패: {str(e)}", 500
+        return f"복구 실패: {str(e)}", 500
 
 # =========================
 # 메인 실행
 # =========================
 
 if __name__ == "__main__":
-    # 서버 시작 시 테이블 생성 시도
     try:
         init_db()
     except Exception as e:
         print(f"⚠️ DB Init Failed: {e}")
-        print("환경변수 DATABASE_URL을 확인하세요.")
 
     from os import environ
     app.run(host="0.0.0.0", port=int(environ.get("PORT", 5000)), debug=True)

@@ -10,6 +10,7 @@
   </div>
 
   <div class="card card-dark p-4 p-md-5">
+    <!-- 헤더 -->
     <div class="d-flex justify-content-between align-items-start mb-3">
       <div>
         <span class="badge rounded-pill border border-secondary text-secondary fw-normal mb-2">
@@ -17,7 +18,6 @@
         </span>
         <h1 class="h3 fw-bold text-white mb-1">{{ exp.title }}</h1>
       </div>
-      
       <div class="text-end">
         <span class="badge bg-primary bg-opacity-25 text-primary-emphasis">
           {{ exp.hours or 0 }} Hours
@@ -36,22 +36,28 @@
       </div>
     </div>
 
+    <!-- 본문 -->
     <div class="markdown-body">
       <p style="white-space: pre-line; font-size: 1.05rem; line-height: 1.7; color: #e4e4e7;">
         {{ exp.description or '상세 내용이 없습니다.' }}
       </p>
     </div>
 
-    <div class="mt-5 pt-3 d-flex justify-content-end gap-2">
-      <button class="btn btn-sm btn-outline-secondary" onclick="history.back()">닫기</button>
-    </div>
-  </div>
-<div class="mt-5 pt-3 d-flex justify-content-end gap-2 border-top border-secondary border-opacity-25">
-      <a href="{{ url_for('edit', exp_id=exp.id) }}" class="btn btn-sm btn-outline-info">수정</a>
-      <a href="{{ url_for('delete', exp_id=exp.id) }}" class="btn btn-sm btn-outline-danger" 
-         onclick="return confirm('정말 삭제하시겠습니까?');">삭제</a>
+    <!-- 하단 액션 -->
+    <div class="mt-5 pt-3 d-flex justify-content-end gap-2 border-top border-secondary border-opacity-25">
+      
+      <!-- ▼▼▼ 관리자(로그인)일 때만 수정/삭제 버튼 표시 ▼▼▼ -->
+      {% if logged_in %}
+        <a href="{{ url_for('edit', exp_id=exp.id) }}" class="btn btn-sm btn-outline-info">수정</a>
+        <a href="{{ url_for('delete', exp_id=exp.id) }}" class="btn btn-sm btn-outline-danger" 
+           onclick="return confirm('정말 삭제하시겠습니까?');">삭제</a>
+      {% endif %}
+      <!-- ▲▲▲ -->
+
       <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-secondary">목록으로</a>
     </div>
+  </div>
+
 </div>
 
 {% endblock %}

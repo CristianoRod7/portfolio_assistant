@@ -1,16 +1,24 @@
 {% extends "base.html" %}
 {% block content %}
 
+<!-- 상단 헤더 -->
 <div class="d-flex justify-content-between align-items-end mb-4">
   <div>
     <h1 class="h3 fw-bold mb-1">Dashboard</h1>
     <p class="text-secondary small mb-0">내 포트폴리오 현황판</p>
   </div>
-  <a href="{{ url_for('add') }}" class="btn btn-ai btn-sm px-3">+ 새 활동 추가</a>
+  
+  <!-- ▼▼▼ 관리자(로그인)일 때만 추가 버튼 표시 ▼▼▼ -->
+  {% if logged_in %}
+    <a href="{{ url_for('add') }}" class="btn btn-ai btn-sm px-3">+ 새 활동 추가</a>
+  {% endif %}
+  <!-- ▲▲▲ -->
 </div>
 
+<!-- 메인 그리드 레이아웃 -->
 <div class="row g-3">
   
+  <!-- 1. 통계 카드 -->
   <div class="col-12 col-lg-8">
     <div class="row g-3 h-100">
       <div class="col-md-4">
@@ -34,6 +42,7 @@
     </div>
   </div>
 
+  <!-- 2. AI 퀵 액션 -->
   <div class="col-12 col-lg-4">
     <div class="card card-dark p-4 h-100">
       <h6 class="text-uppercase text-secondary small fw-bold mb-3">AI Assistant Tools</h6>
@@ -54,19 +63,20 @@
     </div>
   </div>
 
+  <!-- 3. 스킬 레이더 차트 -->
   <div class="col-12">
     <div class="card card-dark p-4">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="fw-bold mb-0 text-white">My Skill Radar</h5>
         <span class="badge bg-secondary bg-opacity-25 text-secondary">Auto-generated</span>
       </div>
-      
       <div style="position: relative; height: 300px; width: 100%; display: flex; justify-content: center;">
         <canvas id="skillChart"></canvas>
       </div>
     </div>
   </div>
 
+  <!-- 4. 활동 목록 리스트 -->
   <div class="col-12">
     <div class="card card-dark p-4">
       <h5 class="mb-4 fw-bold">Recent Activities</h5>
@@ -113,48 +123,36 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-  // 1. HTML에서 데이터 가져오기 (Jinja2 -> JS 변환)
   const skillCounts = {};
-  
-  // 활동 데이터에서 스킬 키워드 추출
   {% for exp in experiences %}
-    var skillsRaw = "{{ exp.skills or '' }}"; // null 체크
+    var skillsRaw = "{{ exp.skills or '' }}";
     if (skillsRaw) {
       var skills = skillsRaw.split(',');
       skills.forEach(function(s) {
         var key = s.trim();
-        if(key) {
-          skillCounts[key] = (skillCounts[key] || 0) + 1;
-        }
+        if(key) { skillCounts[key] = (skillCounts[key] || 0) + 1; }
       });
     }
   {% endfor %}
-
-  // 차트용 데이터 포맷팅
   let labels = Object.keys(skillCounts);
   let dataPoints = Object.values(skillCounts);
-
-  // 데이터가 없을 때 보여줄 더미 데이터 (비어 보이지 않게)
   if (labels.length === 0) {
     labels = ['Python', 'Communication', 'Data Analysis', 'Problem Solving', 'Teamwork'];
     dataPoints = [4, 3, 5, 4, 3];
   }
-
-  // 2. 차트 그리기
   const ctx = document.getElementById('skillChart');
   if (ctx) {
     new Chart(ctx, {
-      type: 'radar', // 방사형 차트
+      type: 'radar',
       data: {
         labels: labels,
         datasets: [{
           label: 'Skill Relevance',
           data: dataPoints,
-          backgroundColor: 'rgba(139, 92, 246, 0.2)', // 보라색 투명
-          borderColor: '#8b5cf6', // 보라색 선
+          backgroundColor: 'rgba(139, 92, 246, 0.2)',
+          borderColor: '#8b5cf6',
           pointBackgroundColor: '#fff',
           pointBorderColor: '#8b5cf6',
           borderWidth: 2,
@@ -163,34 +161,18 @@ document.addEventListener("DOMContentLoaded", function() {
         }]
       },
       options: {
-        maintainAspectRatio: false, // 부모 div 크기에 맞춤
-        elements: {
-          line: { tension: 0.3 } // 선을 둥글게
-        },
+        maintainAspectRatio: false,
+        elements: { line: { tension: 0.3 } },
         scales: {
           r: {
-            angleLines: { color: 'rgba(255, 255, 255, 0.1)' }, // 거미줄 선 색상
-            grid: { color: 'rgba(255, 255, 255, 0.1)' }, // 원형 그리드 색상
-            pointLabels: {
-              color: '#cbd5e1', // 라벨 색상 (밝은 회색)
-              font: { size: 12, family: "'Inter', sans-serif" }
-            },
-            ticks: { display: false, backdropColor: 'transparent' }, // 눈금 숫자 숨김
-            suggestedMin: 0, // 최소값 0부터 시작
-            suggestedMax: 5  // 데이터가 적을 때를 대비해 최대값 고정 (선택사항)
+            angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+            pointLabels: { color: '#cbd5e1', font: { size: 12, family: "'Inter', sans-serif" } },
+            ticks: { display: false, backdropColor: 'transparent' },
+            suggestedMin: 0, suggestedMax: 5
           }
         },
-        plugins: {
-          legend: { display: false }, // 범례 숨김 (깔끔하게)
-          tooltip: {
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            titleColor: '#fff',
-            bodyColor: '#fff',
-            padding: 10,
-            cornerRadius: 8,
-            displayColors: false
-          }
-        }
+        plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.8)', titleColor: '#fff', bodyColor: '#fff', padding: 10, cornerRadius: 8, displayColors: false } }
       }
     });
   }
