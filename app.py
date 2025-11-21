@@ -242,6 +242,87 @@ def company_analyze():
 # resume, cover_letter 라우트도 위와 동일한 패턴으로 call_groq 사용
 # (길이 관계상 생략하지만, 위 call_groq 함수가 HTML을 반환하므로 템플릿에서 {{ result | safe }} 만 쓰면 됨)
 
+@app.route("/resume", methods=["GET", "POST"])
+def resume():
+    exps = fetch_all_experiences(order_by_recent=False)
+    resume_text = None
+    error_msg = None
+    target_company = None
+    target_role = None
+
+    if request.method == "POST":
+        target_company = request.form.get("company") or ""
+        target_role = request.form.get("role") or ""
+
+        if not exps:
+            error_msg = "먼저 활동을 1개 이상 등록해주세요."
+        else:
+            portfolio_text = build_portfolio_text(exps)
+            prompt = f"""
+            [학생 정보] 전공: 컴퓨터공학
+            목표 회사: {target_company or '미지정'}
+            목표 직무: {target_role or '미지정'}
+            [활동 목록]
+            {portfolio_text}
+
+            위 활동을 기반으로 이력서 상단 '핵심 역량 요약'을 마크다운으로 작성해줘.
+            1. **강조할 핵심 역량 3가지**
+            2. **주요 성과 요약** (수치 위주)
+            3. **{target_company} 맞춤 한 줄 어필**
+            """
+            resume_text = call_groq(prompt, "너는 이력서 컨설턴트다.")
+
+    return render_template(
+        "resume.html",
+        experiences=exps,
+        resume_text=resume_text,
+        error_msg=error_msg,
+        company_options=COMPANY_OPTIONS,
+        target_company=target_company,
+        target_role=target_role,
+    )
+
+@app.route("/cover-letter", methods=["GET", "POST"])
+def cover_letter():
+    exps = fetch_all_experiences(order_by_recent=False)
+    letter_text = None
+    error_msg = None
+    target_company = None
+    target_role = None
+
+    if request.method == "POST":
+        target_company = request.form.get("company") or ""
+        target_role = request.form.get("role") or ""
+        extra_request = request.form.get("extra_request", "").strip()
+
+        if not exps:
+            error_msg = "먼저 활동을 1개 이상 등록해주세요."
+        else:
+            portfolio_text = build_portfolio_text(exps)
+            prompt = f"""
+            지원 회사: {target_company}
+            지원 직무: {target_role}
+            추가 요청: {extra_request}
+            [활동 목록]
+            {portfolio_text}
+
+            위 내용을 바탕으로 자기소개서 초안(지원동기+직무역량)을 마크다운으로 작성해줘.
+            - 문단 나누기 필수
+            - 구체적인 경험을 근거로 들 것
+            """
+            letter_text = call_groq(prompt, "너는 자소서 전문 작가다.")
+
+    return render_template(
+        "cover_letter.html",
+        experiences=exps,
+        letter_text=letter_text,
+        error_msg=error_msg,
+        company_options=COMPANY_OPTIONS,
+        target_company=target_company,
+        target_role=target_role,
+    )
+
+
 if __name__ == "__main__":
     init_db()
     from os import environ
