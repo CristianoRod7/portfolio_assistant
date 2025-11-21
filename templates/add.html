@@ -15,9 +15,25 @@
         <div class="row g-3 mb-4">
           <div class="col-md-4">
             <label class="form-label text-secondary small">카테고리</label>
-            <input type="text" name="category" class="form-control bg-dark text-white border-secondary" 
-                   placeholder="예) 프로젝트, 인턴" required>
+            
+            <input type="text" name="category" list="categoryOptions" 
+                   class="form-control bg-dark text-white border-secondary" 
+                   placeholder="선택 또는 직접 입력" required autocomplete="off">
+            
+            <datalist id="categoryOptions">
+              <option value="개인 프로젝트">
+              <option value="팀 프로젝트">
+              <option value="인턴/현장실습">
+              <option value="경진대회/공모전">
+              <option value="해커톤">
+              <option value="자격증/어학">
+              <option value="학회/세미나">
+              <option value="동아리/학생회">
+              <option value="봉사활동">
+              <option value="아르바이트">
+            </datalist>
           </div>
+
           <div class="col-md-8">
             <label class="form-label text-secondary small">활동명 (Title)</label>
             <input type="text" name="title" class="form-control bg-dark text-white border-secondary" 
