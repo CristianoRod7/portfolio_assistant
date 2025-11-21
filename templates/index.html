@@ -1,101 +1,97 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h1 class="h3 mb-4">Dashboard <span class="text-info">AI Insight</span></h1>
-
-<div class="row g-3 mb-4">
-  <div class="col-md-4">
-    <div class="card card-dark p-3 h-100">
-      <div class="small text-secondary mb-1">총 활동 수</div>
-      <div class="fs-3 fw-bold">{{ total_count or 0 }}</div>
-    </div>
+<div class="d-flex justify-content-between align-items-end mb-4">
+  <div>
+    <h1 class="h3 fw-bold mb-1">Dashboard</h1>
+    <p class="text-secondary small mb-0">내 포트폴리오 현황판</p>
   </div>
-  <div class="col-md-4">
-    <div class="card card-dark p-3 h-100">
-      <div class="small text-secondary mb-1">총 투입 시간</div>
-      <div class="fs-3 fw-bold">{{ total_hours or 0 }} <span class="fs-6">시간</span></div>
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card card-dark p-3 h-100">
-      <div class="small text-secondary mb-1">카테고리 수</div>
-      <div class="fs-3 fw-bold">{{ categories|length }}</div>
-    </div>
-  </div>
+  <a href="{{ url_for('add') }}" class="btn btn-ai btn-sm px-3">+ 새 활동 추가</a>
 </div>
 
-<div class="row g-4">
-  <div class="col-lg-7">
-    <div class="card card-dark p-3 mb-4">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <h2 class="h5 mb-0">최근 활동</h2>
-        <a href="{{ url_for('add') }}" class="btn btn-sm btn-ai">활동 추가</a>
+<div class="row g-3">
+  
+  <div class="col-12 col-lg-8">
+    <div class="row g-3 h-100">
+      <div class="col-md-4">
+        <div class="card card-dark p-4 h-100 d-flex flex-column justify-content-center text-center">
+          <span class="display-5 fw-bold text-white">{{ total_count or 0 }}</span>
+          <span class="small text-secondary text-uppercase tracking-wider">Projects</span>
+        </div>
       </div>
-
-      {% if latest %}
-        <div class="mb-2">
-          <span class="badge bg-primary badge-pill me-2">{{ latest['category'] }}</span>
-          <span class="fw-semibold">{{ latest['title'] }}</span>
+      <div class="col-md-4">
+        <div class="card card-dark p-4 h-100 d-flex flex-column justify-content-center text-center">
+          <span class="display-5 fw-bold text-white">{{ total_hours or 0 }}</span>
+          <span class="small text-secondary text-uppercase tracking-wider">Hours</span>
         </div>
-        <div class="small text-secondary mb-1">
-          {{ latest['start_date'] }} ~ {{ latest['end_date'] or '' }} ·
-          {{ latest['hours'] or 0 }}시간
+      </div>
+      <div class="col-md-4">
+        <div class="card card-dark p-4 h-100 d-flex flex-column justify-content-center text-center">
+          <span class="display-5 fw-bold text-white">{{ categories|length }}</span>
+          <span class="small text-secondary text-uppercase tracking-wider">Categories</span>
         </div>
-        <p class="small mb-0">{{ latest['description'] or '' }}</p>
-      {% else %}
-        <p class="small mb-0 text-secondary">아직 등록된 활동이 없습니다.</p>
-      {% endif %}
-    </div>
-
-    <div class="card card-dark p-3">
-      <h2 class="h6 mb-3">전체 활동 리스트</h2>
-      <ul class="list-unstyled mb-0 small">
-        {% for exp in experiences %}
-          <li class="mb-2">
-            <a class="text-decoration-none text-light"
-               href="{{ url_for('experience_detail', exp_id=exp['id']) }}">
-              <span class="badge bg-secondary badge-pill me-2">{{ exp['category'] }}</span>
-              {{ exp['title'] }}
-              <span class="text-secondary">
-                ({{ exp['start_date'] }} ~ {{ exp['end_date'] or '' }}, {{ exp['hours'] or 0 }}시간)
-              </span>
-            </a>
-          </li>
-        {% endfor %}
-        {% if experiences|length == 0 %}
-          <li class="text-secondary">등록된 활동이 없습니다.</li>
-        {% endif %}
-      </ul>
+      </div>
     </div>
   </div>
 
-  <div class="col-lg-5">
-    <div class="card card-dark p-3 mb-3">
-      <h2 class="h6 mb-3">카테고리 비율</h2>
-      <ul class="list-unstyled small mb-0">
-        {% for c in categories %}
-          <li class="d-flex justify-content-between">
-            <span>{{ c['category'] }}</span>
-            <span class="text-secondary">{{ c['cnt'] }}개</span>
-          </li>
-        {% endfor %}
-        {% if categories|length == 0 %}
-          <li class="text-secondary">카테고리 통계 없음</li>
-        {% endif %}
-      </ul>
-    </div>
-
-    <div class="card card-dark p-3">
-      <h2 class="h6 mb-2">AI 기능 바로가기</h2>
-      <p class="small text-secondary mb-3">
-        아래 기능들은 모두 지금까지 입력한 활동을 기반으로 동작합니다.
-      </p>
+  <div class="col-12 col-lg-4">
+    <div class="card card-dark p-4 h-100">
+      <h6 class="text-uppercase text-secondary small fw-bold mb-3">AI Tools</h6>
       <div class="d-grid gap-2">
-        <a href="{{ url_for('analyze') }}" class="btn btn-ai btn-sm">전체 활동 AI 분석</a>
-        <a href="{{ url_for('company_analyze') }}" class="btn btn-outline-light btn-sm">회사 맞춤 분석</a>
-        <a href="{{ url_for('resume') }}" class="btn btn-outline-light btn-sm">이력서 경력 요약 생성</a>
-        <a href="{{ url_for('cover_letter') }}" class="btn btn-outline-light btn-sm">자기소개서 초안 생성</a>
+        <a href="{{ url_for('analyze') }}" class="btn btn-outline-light btn-sm text-start">
+          🔮 전체 포트폴리오 진단
+        </a>
+        <a href="{{ url_for('company_analyze') }}" class="btn btn-outline-light btn-sm text-start">
+          🏢 기업별 합격 확률 분석
+        </a>
+        <a href="{{ url_for('resume') }}" class="btn btn-outline-light btn-sm text-start">
+          📄 이력서 자동 생성
+        </a>
       </div>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <div class="card card-dark p-4">
+      <h5 class="mb-4 fw-bold">Recent Activities</h5>
+      {% if experiences %}
+      <div class="table-responsive">
+        <table class="table table-dark table-hover mb-0" style="--bs-table-bg: transparent;">
+          <thead>
+            <tr class="text-secondary small text-uppercase">
+              <th>Status</th>
+              <th>Title</th>
+              <th>Category</th>
+              <th>Duration</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for exp in experiences %}
+            <tr>
+              <td class="align-middle">
+                <span class="badge rounded-pill bg-{{ exp.status_color }} bg-opacity-10 text-{{ exp.status_color }}">
+                  {{ exp.status_label }}
+                </span>
+              </td>
+              <td class="align-middle fw-semibold">{{ exp.title }}</td>
+              <td class="align-middle text-secondary small">{{ exp.category }}</td>
+              <td class="align-middle text-secondary small">
+                {{ exp.start_date }} ~
+              </td>
+              <td class="text-end">
+                <a href="{{ url_for('experience_detail', exp_id=exp.id) }}" class="btn btn-sm btn-link text-decoration-none text-white">View →</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <div class="text-center py-5 text-secondary">
+          아직 등록된 활동이 없습니다. <br>우측 상단 버튼을 눌러 추가해보세요!
+        </div>
+      {% endif %}
     </div>
   </div>
 </div>
