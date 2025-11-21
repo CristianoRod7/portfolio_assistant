@@ -91,6 +91,9 @@
       background: rgba(0, 0, 0, 0.2);
     }
     footer a:hover { color: #fff !important; text-decoration: underline !important; }
+    
+    /* 모달 텍스트 줄바꿈 개선 */
+    .keep-all { word-break: keep-all; }
   </style>
 </head>
 <body>
@@ -110,7 +113,7 @@
     </button>
     <div class="collapse navbar-collapse" id="navMenu">
       <ul class="navbar-nav ms-auto">
-        <!-- ▼▼▼ [여기] 사용법 버튼 (누르면 팝업 뜸) ▼▼▼ -->
+        <!-- 사용 가이드 버튼 -->
         <li class="nav-item">
           <a class="nav-link text-light" href="#" data-bs-toggle="modal" data-bs-target="#helpModal">❓ 사용법</a>
         </li>
@@ -162,7 +165,7 @@
   </div>
 </footer>
 
-<!-- ▼▼▼ [여기] 사용법 설명창 팝업 (Modal) ▼▼▼ -->
+<!-- ▼▼▼ [수정됨] 사용 가이드 모달 (내용 보강 + 줄바꿈 교정) ▼▼▼ -->
 <div class="modal fade" id="helpModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content card-dark border-secondary">
@@ -172,38 +175,42 @@
       </div>
       <div class="modal-body text-secondary">
         <div class="row g-4">
+          <!-- 섹션 1 -->
           <div class="col-md-6">
-            <h6 class="text-info fw-bold mb-2">1. 관리자 로그인 (필수)</h6>
-            <p class="small">
-              우측 상단 <strong>'관리자 로그인'</strong>을 해야 활동을 추가하거나 수정할 수 있습니다.<br>
-              (비로그인 상태에서는 조회만 가능합니다)
+            <h6 class="text-info fw-bold mb-2">🔐 1. 관리자 로그인 (필수)</h6>
+            <p class="small keep-all lh-base">
+              우측 상단의 <strong>'관리자 로그인'</strong> 버튼을 눌러 로그인을 완료해야 합니다. 
+              로그인을 해야만 활동을 추가하거나 수정할 수 있으며, 비로그인 상태에서는 포트폴리오 조회만 가능합니다.
             </p>
           </div>
+          <!-- 섹션 2 -->
           <div class="col-md-6">
-            <h6 class="text-info fw-bold mb-2">2. 활동 기록하기</h6>
-            <p class="small">
-              <strong>[활동 추가]</strong> 메뉴에서 프로젝트, 인턴, 수상 경력 등을 기록하세요.<br>
-              기술 스택은 태그로 관리되며, 증빙 링크를 넣으면 신뢰도가 올라갑니다.
+            <h6 class="text-info fw-bold mb-2">📝 2. 활동 기록 및 관리</h6>
+            <p class="small keep-all lh-base">
+              <strong>[새활동 추가]</strong> 버튼을 클릭해 프로젝트, 인턴, 수상 경력 등을 상세히 기록하세요. 
+              기술 스택은 태그 방식으로 여러 개 입력 가능하며, 깃허브나 노션 등 증빙 링크를 첨부하면 신뢰도가 높아집니다.
             </p>
           </div>
+          <!-- 섹션 3 -->
           <div class="col-md-6">
-            <h6 class="text-warning fw-bold mb-2">3. AI 학습 및 설정</h6>
-            <p class="small">
-              <strong>[⚙️ AI 설정]</strong> 메뉴에서 본인의 전공, 강점, AI 말투를 설정하세요.<br>
-              이 정보를 바탕으로 AI가 더 정확한 분석 결과를 제공합니다.
+            <h6 class="text-warning fw-bold mb-2">🧠 3. AI 학습 및 페르소나 설정</h6>
+            <p class="small keep-all lh-base">
+              <strong>[⚙️ AI 설정]</strong> 메뉴에서 본인의 전공, 핵심 강점, 커리어 목표를 AI에게 가르치세요. 
+              "자신감 있게 써줘", "수치를 강조해줘" 같은 구체적인 지시를 내리면 AI가 그에 맞춰 글을 작성합니다.
             </p>
           </div>
+          <!-- 섹션 4 -->
           <div class="col-md-6">
-            <h6 class="text-success fw-bold mb-2">4. AI 도구 활용</h6>
-            <p class="small">
-              대시보드에서 <strong>[AI 분석], [기업 맞춤], [이력서], [자소서]</strong> 기능을 사용해 보세요.<br>
-              내가 입력한 데이터를 기반으로 초안을 작성해 줍니다.
+            <h6 class="text-success fw-bold mb-2">🚀 4. 취업용 AI 도구 활용</h6>
+            <p class="small keep-all lh-base">
+              대시보드 우측의 <strong>[AI 분석], [기업 맞춤], [이력서], [자소서]</strong> 버튼을 활용해 보세요. 
+              입력된 활동 데이터를 바탕으로 1초 만에 맞춤형 초안을 생성해 줍니다. (생성된 내용은 반드시 검토 후 사용하세요!)
             </p>
           </div>
         </div>
         <hr class="border-secondary my-4">
-        <p class="small text-center mb-0">
-          💡 <strong>Tip:</strong> 중요한 데이터는 <strong>[💾 백업]</strong> 메뉴에서 엑셀 파일로 다운로드해 두세요.
+        <p class="small text-center mb-0 keep-all text-white-50">
+          💡 <strong>Tip:</strong> 데이터는 안전한 클라우드 DB에 저장되지만, 중요한 정보는 <strong>[💾 백업]</strong> 메뉴에서 엑셀 파일로 다운로드해 두는 것을 권장합니다.
         </p>
       </div>
       <div class="modal-footer border-secondary">
@@ -212,7 +219,7 @@
     </div>
   </div>
 </div>
-<!-- ▲▲▲ 팝업 끝 ▲▲▲ -->
+<!-- ▲▲▲ -->
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
