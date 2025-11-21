@@ -38,10 +38,21 @@
                         </select>
                     </div>
 
+                    <!-- ▼▼▼ [수정됨] 기업명 자동완성 적용 ▼▼▼ -->
                     <div class="mb-3">
                         <label class="form-label text-info fw-bold">지원 기업</label>
-                        <input type="text" name="company" class="form-control bg-dark text-white border-secondary p-3" placeholder="예: 삼성전자, 지역 소방서" required>
+                        <input type="text" name="company" class="form-control bg-dark text-white border-secondary p-3" 
+                               placeholder="기업명을 입력하거나 클릭하세요" 
+                               list="companyOptions" autocomplete="off" required>
+                        
+                        <!-- 자동완성 데이터 리스트 -->
+                        <datalist id="companyOptions">
+                            {% for company in company_options %}
+                                <option value="{{ company }}">
+                            {% endfor %}
+                        </datalist>
                     </div>
+                    <!-- ▲▲▲ -->
 
                     <div class="mb-4">
                         <label class="form-label text-success fw-bold">지원 직무</label>
@@ -55,14 +66,15 @@
             </div>
         </div>
 
-        {% if result %}
+        <!-- ▼▼▼ 변수명 수정 (app.py와 일치시킴: resume_text) ▼▼▼ -->
+        {% if resume_text %}
         <div class="card card-dark border-0 animate-slide-up">
             <div class="card-header border-secondary bg-transparent py-3">
                 <h5 class="mb-0 text-white">📄 생성된 이력서 초안</h5>
             </div>
             <div class="card-body p-4">
                 <div class="markdown-body">
-                    {{ result | safe }}
+                    {{ resume_text | safe }}
                 </div>
                 <div class="mt-4 text-end">
                     <button class="btn btn-outline-light btn-sm" onclick="window.print()">PDF로 저장 / 인쇄</button>
@@ -95,7 +107,7 @@ function updateJobs() {
         "스마트팜학과": ["스마트팜 운영 관리자", "시설원예 기사", "농업직 공무원", "농산물 품질 관리사", "농업경영 컨설턴트"]
     };
 
-    jobSelect.innerHTML = ""; // 기존 옵션 초기화
+    jobSelect.innerHTML = "";
 
     if (major && jobsData[major]) {
         jobsData[major].forEach(function(job) {
@@ -104,7 +116,6 @@ function updateJobs() {
             option.text = job;
             jobSelect.appendChild(option);
         });
-        // 기타 옵션 추가
         let otherOption = document.createElement("option");
         otherOption.value = "직접입력";
         otherOption.text = "기타 (직접 입력)";
