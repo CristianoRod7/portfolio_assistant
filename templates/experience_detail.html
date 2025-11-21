@@ -46,7 +46,12 @@
       <button class="btn btn-sm btn-outline-secondary" onclick="history.back()">닫기</button>
     </div>
   </div>
-
+<div class="mt-5 pt-3 d-flex justify-content-end gap-2 border-top border-secondary border-opacity-25">
+      <a href="{{ url_for('edit', exp_id=exp.id) }}" class="btn btn-sm btn-outline-info">수정</a>
+      <a href="{{ url_for('delete', exp_id=exp.id) }}" class="btn btn-sm btn-outline-danger" 
+         onclick="return confirm('정말 삭제하시겠습니까?');">삭제</a>
+      <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-secondary">목록으로</a>
+    </div>
 </div>
 
 {% endblock %}

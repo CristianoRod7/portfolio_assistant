@@ -323,7 +323,39 @@ def cover_letter():
         target_company=target_company,
         target_role=target_role,
     )
+@app.route("/edit/<int:exp_id>", methods=["GET", "POST"])
+def edit(exp_id):
+    conn = get_db()
+    if request.method == "POST":
+        # 수정 로직
+        category = request.form["category"]
+        title = request.form["title"]
+        description = request.form["description"]
+        start_date = request.form["start_date"]
+        end_date = request.form["end_date"] or None
+        hours = request.form["hours"]
+        skills = request.form["skills"]
+        
+        conn.execute(
+            """UPDATE experience 
+               SET category=?, title=?, description=?, start_date=?, end_date=?, hours=?, skills=?
+               WHERE id=?""",
+            (category, title, description, start_date, end_date, hours, skills, exp_id)
+        )
+        conn.commit()
+        conn.close()
+        return redirect(url_for('experience_detail', exp_id=exp_id))
+    
+    # 기존 데이터 불러오기
+    exp = conn.execute("SELECT * FROM experience WHERE id = ?", (exp_id,)).fetchone()
+    conn.close()
+    return render_template("add.html", exp=exp, is_edit=True) # add.html 재사용
 
+@app.route("/delete/<int:exp_id>")
+def delete(exp_id):
+    with get_db() as conn:
+        conn.execute("DELETE FROM experience WHERE id = ?", (exp_id,))
+    return redirect(url_for('index'))
 
 if __name__ == "__main__":
     init_db()
