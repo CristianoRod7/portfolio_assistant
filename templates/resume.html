@@ -1,64 +1,47 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2 class="h4 mb-3">자동 이력서 경력 요약 생성</h2>
+<h2 class="h4 mb-4 fw-bold">📄 이력서 핵심 경력 생성</h2>
 
-<div class="card card-dark p-3 mb-4">
-  <form method="post" class="row g-3">
+<div class="card card-dark p-4 mb-4">
+  <form method="post" class="row g-3 align-items-end">
     <div class="col-md-5">
-      <label class="form-label">목표 회사 (선택)</label>
-      <select name="company" class="form-select">
-        <option value="">입력 안 함</option>
+      <label class="form-label text-secondary small">타겟 회사 (선택)</label>
+      <select name="company" class="form-select bg-dark text-white border-secondary">
+        <option value="">일반 (특정 기업 지정 안 함)</option>
         {% for c in company_options %}
           <option value="{{ c }}" {% if target_company == c %}selected{% endif %}>{{ c }}</option>
         {% endfor %}
       </select>
     </div>
     <div class="col-md-5">
-      <label class="form-label">목표 직무 / 포지션 (선택)</label>
-      <input type="text" name="role" class="form-control"
-             placeholder="예) 전산직, 데이터 분석, 백엔드 개발 등"
-             value="{{ target_role or '' }}">
+      <label class="form-label text-secondary small">타겟 직무</label>
+      <input type="text" name="role" class="form-control bg-dark text-white border-secondary"
+             placeholder="예) SW 엔지니어" value="{{ target_role or '' }}">
     </div>
-    <div class="col-md-2 d-flex align-items-end">
-      <button type="submit" class="btn btn-ai w-100">AI로 이력서 요약 생성</button>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-ai w-100">생성</button>
     </div>
   </form>
 </div>
 
 {% if error_msg %}
-<div class="alert alert-danger small card-dark border-0">
+<div class="alert alert-danger bg-transparent border-danger text-danger">
   {{ error_msg }}
 </div>
 {% endif %}
 
 {% if resume_text %}
-<div class="d-flex justify-content-end mb-2 btn-print-hide">
-  <button type="button" class="btn btn-outline-light btn-sm"
-          onclick="window.print()">
-    이 내용 PDF로 저장 (인쇄)
-  </button>
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <span class="small text-secondary">💡 이 내용을 이력서 상단 '핵심 역량' 란에 복사해서 쓰세요.</span>
+  <button type="button" class="btn btn-sm btn-outline-light" onclick="window.print()">PDF 저장</button>
 </div>
 
-<div class="card card-dark p-3 mb-4">
-  <h3 class="h6 mb-3">이력서 상단 경력·역량 요약</h3>
-  <div class="small" style="white-space: pre-line;">
-    {{ resume_text }}
+<div class="card card-dark p-4 border-light border-opacity-25">
+  <div class="markdown-body">
+    {{ resume_text | safe }}
   </div>
 </div>
 {% endif %}
-
-<h4 class="h6 mb-2">현재 등록된 활동 요약</h4>
-<ul class="list-unstyled small">
-  {% for exp in experiences %}
-    <li>
-      [{{ exp['category'] }}] {{ exp['title'] }}
-      ({{ exp['start_date'] }} ~ {{ exp['end_date'] or '' }})
-    </li>
-  {% endfor %}
-  {% if experiences|length == 0 %}
-    <li class="text-secondary">아직 활동이 없습니다.</li>
-  {% endif %}
-</ul>
 
 {% endblock %}

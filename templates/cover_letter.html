@@ -1,66 +1,46 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2 class="h4 mb-3">AI 자기소개서 초안 생성</h2>
+<h2 class="h4 mb-4 fw-bold">✍️ 자기소개서 초안 작성</h2>
 
-<div class="card card-dark p-3 mb-4">
+<div class="card card-dark p-4 mb-4">
   <form method="post" class="row g-3">
-    <div class="col-md-4">
-      <label class="form-label">지원 회사</label>
-      <select name="company" class="form-select">
-        <option value="">입력 안 함</option>
+    <div class="col-md-6">
+      <label class="form-label text-secondary small">지원 회사</label>
+      <select name="company" class="form-select bg-dark text-white border-secondary">
+        <option value="">선택하세요</option>
         {% for c in company_options %}
           <option value="{{ c }}" {% if target_company == c %}selected{% endif %}>{{ c }}</option>
         {% endfor %}
       </select>
     </div>
-    <div class="col-md-4">
-      <label class="form-label">지원 직무</label>
-      <input type="text" name="role" class="form-control"
-             placeholder="예) 전산직, 데이터 분석, 백엔드 개발 등"
-             value="{{ target_role or '' }}">
-    </div>
-    <div class="col-md-4">
-      <label class="form-label">추가 요청 (선택)</label>
-      <input type="text" name="extra_request" class="form-control"
-             placeholder="예) 성장 과정 위주로, 팀워크 강조 등">
+    <div class="col-md-6">
+      <label class="form-label text-secondary small">지원 직무</label>
+      <input type="text" name="role" class="form-control bg-dark text-white border-secondary"
+             value="{{ target_role or '' }}" placeholder="직무명 입력">
     </div>
     <div class="col-12">
-      <button type="submit" class="btn btn-ai w-100">AI로 자소서 초안 생성</button>
+      <label class="form-label text-secondary small">특별히 강조하고 싶은 점 (선택)</label>
+      <input type="text" name="extra_request" class="form-control bg-dark text-white border-secondary"
+             placeholder="예) 꼼꼼한 성격, 동아리 리더 경험 위주로 써줘">
+    </div>
+    <div class="col-12 text-end">
+      <button type="submit" class="btn btn-ai px-4">AI 자소서 생성하기</button>
     </div>
   </form>
 </div>
 
-{% if error_msg %}
-<div class="alert alert-danger small card-dark border-0">
-  {{ error_msg }}
-</div>
-{% endif %}
-
 {% if letter_text %}
-<div class="d-flex justify-content-end mb-2">
-  <button type="button" class="btn btn-outline-light btn-sm"
-          onclick="window.print()">
-    이 내용 PDF로 저장 (인쇄)
-  </button>
-</div>
-
-<div class="card card-dark p-3 mb-4">
-  <h3 class="h6 mb-3">자기소개서 초안</h3>
-  <div class="small" style="white-space: pre-line;">
-    {{ letter_text }}
+<div class="card card-dark p-4 p-lg-5 border-light border-opacity-10">
+  <div class="d-flex justify-content-between mb-4 border-bottom border-secondary border-opacity-25 pb-2">
+    <h3 class="h5 text-white">Draft Preview</h3>
+    <button class="btn btn-sm btn-outline-secondary" onclick="window.print()">Save PDF</button>
+  </div>
+  
+  <div class="markdown-body" style="line-height: 1.8;">
+    {{ letter_text | safe }}
   </div>
 </div>
 {% endif %}
-
-<h4 class="h6 mb-2">현재 등록된 활동 요약</h4>
-<ul class="list-unstyled small">
-  {% for exp in experiences %}
-    <li>[{{ exp['category'] }}] {{ exp['title'] }}</li>
-  {% endfor %}
-  {% if experiences|length == 0 %}
-    <li class="text-secondary">아직 활동이 없습니다.</li>
-  {% endif %}
-</ul>
 
 {% endblock %}

@@ -1,56 +1,68 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2 class="h4 mb-3">회사 맞춤 분석</h2>
+<h2 class="h4 mb-4 fw-bold">🎯 기업 맞춤 합격 분석</h2>
 
-<div class="card card-dark p-3 mb-4">
-  <form method="post" class="row g-3">
-    <div class="col-md-5">
-      <label class="form-label">목표 회사</label>
-      <select name="company" class="form-select">
+<div class="card card-dark p-4 mb-5">
+  <form method="post" class="row g-3 align-items-end">
+    <div class="col-md-4">
+      <label class="form-label text-secondary small">지원할 회사</label>
+      <select name="company" class="form-select bg-dark text-white border-secondary">
         <option value="">선택하세요</option>
         {% for c in company_options %}
           <option value="{{ c }}" {% if target_company == c %}selected{% endif %}>{{ c }}</option>
         {% endfor %}
       </select>
     </div>
-    <div class="col-md-5">
-      <label class="form-label">목표 직무 / 포지션</label>
-      <input type="text" name="role" class="form-control"
-             placeholder="예) 전산직, 데이터 분석, 백엔드 개발 등"
+    <div class="col-md-6">
+      <label class="form-label text-secondary small">지원 직무 (Position)</label>
+      <input type="text" name="role" class="form-control bg-dark text-white border-secondary"
+             placeholder="예) 백엔드 개발자, 서비스 기획"
              value="{{ target_role or '' }}">
     </div>
-    <div class="col-md-2 d-flex align-items-end">
-      <button type="submit" class="btn btn-ai w-100">AI 분석 실행</button>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-ai w-100">분석 시작</button>
     </div>
   </form>
 </div>
 
 {% if error_msg %}
-<div class="alert alert-danger small card-dark border-0">
-  {{ error_msg }}
+<div class="alert alert-danger bg-transparent border-danger text-danger">
+  ⚠️ {{ error_msg }}
 </div>
 {% endif %}
 
-{% if analysis_text %}
+{% if ai_result %}
 <div class="d-flex justify-content-end mb-2">
-  <button class="btn btn-outline-light btn-sm" onclick="window.print()">PDF로 저장 / 인쇄</button>
+  <button class="btn btn-sm btn-outline-light" onclick="window.print()">🖨️ 결과 저장 (PDF)</button>
 </div>
 
-<div class="card card-dark p-3 mb-4">
-  <h3 class="h6 mb-3">분석 결과</h3>
-  <div class="small" style="white-space: pre-line;">{{ analysis_text }}</div>
+<div class="card card-dark p-4 border-primary border-opacity-50">
+  <div class="mb-4 pb-3 border-bottom border-secondary border-opacity-25">
+    <h3 class="h5 mb-1 text-white">Analysis Report</h3>
+    <p class="small text-secondary mb-0">
+      <span class="text-info">{{ target_company }}</span> - 
+      <span class="text-info">{{ target_role }}</span> 직무 기준 분석 결과
+    </p>
+  </div>
+  
+  <div class="markdown-body">
+    {{ ai_result | safe }}
+  </div>
 </div>
 {% endif %}
 
-<h4 class="h6 mb-2">현재 등록된 활동 요약</h4>
-<ul class="list-unstyled small">
+<div class="mt-5 pt-5 border-top border-secondary border-opacity-25">
+  <h6 class="text-secondary small text-uppercase mb-3">Reference Data</h6>
+  <div class="d-flex flex-wrap gap-2">
   {% for exp in experiences %}
-    <li>[{{ exp['category'] }}] {{ exp['title'] }}</li>
+    <span class="badge bg-dark border border-secondary text-secondary fw-normal">
+      {{ exp.title }}
+    </span>
+  {% else %}
+    <span class="text-secondary small">등록된 활동 데이터가 없습니다.</span>
   {% endfor %}
-  {% if experiences|length == 0 %}
-    <li class="text-secondary">아직 활동이 없습니다.</li>
-  {% endif %}
-</ul>
+  </div>
+</div>
 
 {% endblock %}

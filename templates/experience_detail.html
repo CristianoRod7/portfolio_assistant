@@ -1,23 +1,52 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2 class="h4 mb-3">활동 상세</h2>
+<div class="container" style="max-width: 800px;">
+  
+  <div class="mb-4">
+    <a href="{{ url_for('index') }}" class="text-decoration-none text-secondary small">
+      ← 목록으로 돌아가기
+    </a>
+  </div>
 
-<div class="card card-dark p-3 mb-3">
-  <div class="mb-2">
-    <span class="badge bg-primary badge-pill me-2">{{ exp['category'] }}</span>
-    <span class="fw-semibold">{{ exp['title'] }}</span>
+  <div class="card card-dark p-4 p-md-5">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+      <div>
+        <span class="badge rounded-pill border border-secondary text-secondary fw-normal mb-2">
+          {{ exp.category }}
+        </span>
+        <h1 class="h3 fw-bold text-white mb-1">{{ exp.title }}</h1>
+      </div>
+      
+      <div class="text-end">
+        <span class="badge bg-primary bg-opacity-25 text-primary-emphasis">
+          {{ exp.hours or 0 }} Hours
+        </span>
+      </div>
+    </div>
+
+    <div class="d-flex gap-4 text-secondary small mb-4 pb-4 border-bottom border-secondary border-opacity-25">
+      <div>
+        <span class="d-block text-uppercase" style="font-size: 0.7rem;">Period</span>
+        <span class="text-white">{{ exp.start_date }} ~ {{ exp.end_date or '진행 중' }}</span>
+      </div>
+      <div>
+        <span class="d-block text-uppercase" style="font-size: 0.7rem;">Tech Stack</span>
+        <span class="text-white">{{ exp.skills or '-' }}</span>
+      </div>
+    </div>
+
+    <div class="markdown-body">
+      <p style="white-space: pre-line; font-size: 1.05rem; line-height: 1.7; color: #e4e4e7;">
+        {{ exp.description or '상세 내용이 없습니다.' }}
+      </p>
+    </div>
+
+    <div class="mt-5 pt-3 d-flex justify-content-end gap-2">
+      <button class="btn btn-sm btn-outline-secondary" onclick="history.back()">닫기</button>
+    </div>
   </div>
-  <div class="small text-secondary mb-1">
-    기간: {{ exp['start_date'] }} ~ {{ exp['end_date'] or '' }}
-    · {{ exp['hours'] or 0 }}시간
-  </div>
-  <div class="small text-secondary mb-2">
-    기술/키워드: {{ exp['skills'] or '—' }}
-  </div>
-  <p class="small mb-0" style="white-space: pre-line;">{{ exp['description'] or '' }}</p>
+
 </div>
-
-<a href="{{ url_for('index') }}" class="btn btn-outline-light btn-sm">← 목록으로</a>
 
 {% endblock %}
