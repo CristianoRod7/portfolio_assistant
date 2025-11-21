@@ -4,17 +4,24 @@
   <meta charset="utf-8">
   <title>AI Portfolio | Renderer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <!-- SNS 공유용 메타 태그 (Open Graph) -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://your-render-url.onrender.com/">
+  <meta property="og:title" content="My AI Portfolio">
+  <meta property="og:description" content="AI가 분석해주는 개발자 포트폴리오 관리 시스템">
+  <meta property="og:image" content="https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1000&auto=format&fit=crop">
+  
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- 폰트: Inter + JetBrains Mono -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg-color: #09090b;
       --card-bg: rgba(24, 24, 27, 0.6);
-      --accent-color: #8b5cf6; /* Violet */
+      --accent-color: #8b5cf6;
       --accent-glow: #7c3aed;
-      --text-main: #f4f4f5; /* 밝은 흰색 */
-      --text-sub: #a1a1aa;  /* 밝은 회색 */
+      --text-main: #f4f4f5;
+      --text-sub: #a1a1aa;
     }
     body {
       background-color: var(--bg-color);
@@ -22,9 +29,10 @@
       font-family: 'Inter', sans-serif;
       background-image: radial-gradient(circle at 50% 0%, #2e1065 0%, transparent 50%);
       min-height: 100vh;
+      display: flex;
+      flex-direction: column; /* Footer를 바닥에 붙이기 위함 */
     }
     
-    /* Glassmorphism Card */
     .card-dark {
       background-color: var(--card-bg);
       backdrop-filter: blur(12px);
@@ -57,37 +65,15 @@
       transform: translateY(-1px);
     }
     
-    /* ▼▼▼ [중요] 마크다운 텍스트 컬러 강제 적용 수정 ▼▼▼ */
-    .markdown-body {
-      color: var(--text-main) !important; /* 기본 글자색 강제 흰색 */
+    .markdown-body { color: var(--text-main) !important; }
+    .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 { 
+      margin-top: 1.5rem; margin-bottom: 1rem; color: #fff !important; font-weight: 700;
     }
-    .markdown-body h1, .markdown-body h2, .markdown-body h3, 
-    .markdown-body h4, .markdown-body h5, .markdown-body h6 { 
-      margin-top: 1.5rem; 
-      margin-bottom: 1rem; 
-      color: #fff !important; /* 헤더는 완전 흰색 */
-      font-weight: 700;
-    }
-    .markdown-body p {
-      color: #e4e4e7 !important; /* 본문은 아주 밝은 회색 */
-      line-height: 1.7;
-    }
-    .markdown-body ul, .markdown-body ol { 
-      padding-left: 1.2rem; 
-      color: #d4d4d8 !important; /* 리스트도 밝은 회색 */
-    }
-    .markdown-body strong { 
-      color: #a78bfa !important; /* 강조(굵게)는 보라색 포인트 */
-    }
-    .markdown-body blockquote {
-      border-left: 4px solid #8b5cf6;
-      padding-left: 1rem;
-      color: #a1a1aa !important;
-      font-style: italic;
-    }
-    /* ▲▲▲ 수정 끝 ▲▲▲ */
+    .markdown-body p { color: #e4e4e7 !important; line-height: 1.7; }
+    .markdown-body ul { padding-left: 1.2rem; color: #d4d4d8 !important; }
+    .markdown-body strong { color: #a78bfa !important; }
+    .markdown-body blockquote { border-left: 4px solid #8b5cf6; padding-left: 1rem; color: #a1a1aa !important; font-style: italic; }
 
-    /* Loading Overlay */
     #loading-overlay {
       position: fixed; top:0; left:0; width:100%; height:100%;
       background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
@@ -95,20 +81,19 @@
       flex-direction: column; justify-content: center; align-items: center;
     }
     .spinner-border { width: 3rem; height: 3rem; border-width: 0.25em; }
-  </style>
-  <!-- ... 기존 CSS 링크들 ... -->
 
-  <!-- ▼▼▼ [추가] SNS 공유용 메타 태그 (Open Graph) ▼▼▼ -->
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://portfolio-assistant.onrender.com/"> <!-- 본인 Render 주소로 변경 -->
-  <meta property="og:title" content="My AI Portfolio">
-  <meta property="og:description" content="AI가 분석해주는 개발자 포트폴리오 관리 시스템">
-  <meta property="og:image" content="https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1000&auto=format&fit=crop"> <!-- 썸네일 이미지 주소 (원하는 걸로 변경 가능) -->
-  <meta name="twitter:card" content="summary_large_image">
+    /* Footer Style */
+    footer {
+      margin-top: auto; /* 내용을 밀어내고 바닥에 위치 */
+      padding: 3rem 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.2);
+    }
+    footer a:hover { color: #fff !important; text-decoration: underline !important; }
+  </style>
 </head>
 <body>
 
-<!-- 로딩 오버레이 -->
 <div id="loading-overlay">
   <div class="spinner-border text-primary mb-3" role="status"></div>
   <h5 class="text-white animate-pulse">AI가 분석 중입니다...</h5>
@@ -124,11 +109,9 @@
     </button>
     <div class="collapse navbar-collapse" id="navMenu">
       <ul class="navbar-nav ms-auto">
-        <!-- AI 도구 메뉴 -->
         <li class="nav-item"><a class="nav-link" href="{{ url_for('analyze') }}">AI 분석</a></li>
         <li class="nav-item"><a class="nav-link" href="{{ url_for('company_analyze') }}">기업 맞춤</a></li>
 
-        <!-- 로그인 상태에 따라 버튼 변경 -->
         {% if logged_in %}
           <li class="nav-item"><a class="nav-link text-info" href="{{ url_for('add') }}">활동 추가</a></li>
           <li class="nav-item border-start border-secondary mx-2 d-none d-lg-block"></li>
@@ -144,7 +127,6 @@
 </nav>
 
 <div class="container mb-5">
-  <!-- 플래시 메시지 -->
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       {% for category, message in messages %}
@@ -158,6 +140,27 @@
 
   {% block content %}{% endblock %}
 </div>
+
+<!-- Footer 영역 수정됨 (전화 + 이메일) -->
+<footer>
+  <div class="container text-center">
+    <p class="text-white fw-bold mb-1">My AI Portfolio</p>
+    <p class="text-secondary small mb-3">
+      Built with Flask, Python, and Groq AI. <br>
+      Copyright © 2025. All rights reserved.
+    </p>
+    <div class="d-flex justify-content-center gap-4 small">
+      <!-- 전화번호 (tel:) -->
+      <a href="tel:010-3814-1729" class="text-secondary text-decoration-none">
+        📞 Call Me (010-3814-1729)
+      </a>
+      <!-- 이메일 (mailto:) -->
+      <a href="mailto:kywksj200@naver.com" class="text-secondary text-decoration-none">
+        📧 Email Me (kywksj200@naver.com)
+      </a>
+    </div>
+  </div>
+</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
