@@ -14,11 +14,35 @@
         {% endfor %}
       </select>
     </div>
+    
+    <!-- 직무 선택 (추천 목록 적용) -->
     <div class="col-md-6">
       <label class="form-label text-secondary small">지원 직무</label>
-      <input type="text" name="role" class="form-control bg-dark text-white border-secondary"
-             value="{{ target_role or '' }}" placeholder="직무명 입력">
+      <input type="text" name="role" list="roleOptions"
+             class="form-control bg-dark text-white border-secondary"
+             value="{{ target_role or '' }}" 
+             placeholder="직무를 선택하거나 입력하세요" autocomplete="off">
+
+      <!-- 직무 추천 목록 (Datalist) -->
+      <datalist id="roleOptions">
+        <option value="백엔드 개발자 (Backend Developer)">
+        <option value="프론트엔드 개발자 (Frontend Developer)">
+        <option value="풀스택 개발자 (Full Stack Developer)">
+        <option value="모바일 앱 개발자 (Android/iOS)">
+        <option value="데이터 엔지니어 (Data Engineer)">
+        <option value="데이터 분석가 (Data Analyst)">
+        <option value="인공지능/머신러닝 엔지니어 (AI/ML)">
+        <option value="DevOps/SRE 엔지니어">
+        <option value="보안 엔지니어 (Security)">
+        <option value="임베디드 소프트웨어 개발자">
+        <option value="SW 개발 / 전산직">
+        <option value="ICT / 정보보호">
+        <option value="IT 서비스 기획 (PM/PO)">
+        <option value="R&D (연구개발)">
+        <option value="시스템 엔지니어 (System Engineer)">
+      </datalist>
     </div>
+
     <div class="col-12">
       <label class="form-label text-secondary small">특별히 강조하고 싶은 점 (선택)</label>
       <input type="text" name="extra_request" class="form-control bg-dark text-white border-secondary"
@@ -37,12 +61,13 @@
     <button class="btn btn-sm btn-outline-secondary" onclick="window.print()">Save PDF</button>
   </div>
   
+  <!-- 마크다운 결과 표시 -->
   <div class="markdown-body" style="line-height: 1.8;">
     {{ letter_text | safe }}
   </div>
 </div>
 
-<!-- ▼▼▼ [추가] 주의 문구 ▼▼▼ -->
+<!-- 주의 문구 (Disclaimer) -->
 <div class="alert alert-danger bg-opacity-10 border-danger border-opacity-25 text-danger small">
   <strong>🛑 주의:</strong> 이 내용은 AI가 작성한 초안(Draft)입니다. <br>
   그대로 제출하지 마시고, <strong>본인의 경험과 말투에 맞게 반드시 다듬어서</strong> 사용하세요.

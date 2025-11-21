@@ -14,11 +14,35 @@
         {% endfor %}
       </select>
     </div>
+    
+    <!-- 직무 선택 (수정됨: list 속성 추가) -->
     <div class="col-md-5">
       <label class="form-label text-secondary small">타겟 직무</label>
-      <input type="text" name="role" class="form-control bg-dark text-white border-secondary"
-             placeholder="예) SW 엔지니어" value="{{ target_role or '' }}">
+      <input type="text" name="role" list="roleOptions" 
+             class="form-control bg-dark text-white border-secondary"
+             placeholder="직무를 선택하거나 입력하세요" 
+             value="{{ target_role or '' }}" autocomplete="off">
+             
+      <!-- 직무 추천 목록 (Datalist) -->
+      <datalist id="roleOptions">
+        <option value="백엔드 개발자 (Backend Developer)">
+        <option value="프론트엔드 개발자 (Frontend Developer)">
+        <option value="풀스택 개발자 (Full Stack Developer)">
+        <option value="모바일 앱 개발자 (Android/iOS)">
+        <option value="데이터 엔지니어 (Data Engineer)">
+        <option value="데이터 분석가 (Data Analyst)">
+        <option value="인공지능/머신러닝 엔지니어 (AI/ML)">
+        <option value="DevOps/SRE 엔지니어">
+        <option value="보안 엔지니어 (Security)">
+        <option value="임베디드 소프트웨어 개발자">
+        <option value="SW 개발 / 전산직">
+        <option value="ICT / 정보보호">
+        <option value="IT 서비스 기획 (PM/PO)">
+        <option value="R&D (연구개발)">
+        <option value="시스템 엔지니어 (System Engineer)">
+      </datalist>
     </div>
+
     <div class="col-md-2">
       <button type="submit" class="btn btn-ai w-100">생성</button>
     </div>
@@ -37,7 +61,6 @@
   </div>
 </div>
 
-<!-- ▼▼▼ [추가] 주의 문구 ▼▼▼ -->
 <div class="text-end text-secondary small">
   ⚠️ AI가 생성한 문구입니다. <strong>반드시 사실 여부를 확인하고 수정</strong>하여 사용하세요.
 </div>
