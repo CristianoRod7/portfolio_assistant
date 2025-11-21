@@ -1,134 +1,87 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h1 class="text-3xl font-bold mb-6">
-  Dashboard <span class="text-ai-purple">AI Insight</span>
-</h1>
+<h1 class="mb-3 fw-bold">Dashboard <span class="text-info">AI Insight</span></h1>
 
-<!-- 상단 카드 통계 -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-
-  <!-- 총 활동 개수 -->
-  <div class="bg-ai-gradient-1 bg-opacity-60 p-6 rounded-2xl shadow-xl border border-ai-purple">
-      <p class="text-gray-300">총 활동 수</p>
-      <p class="text-4xl font-bold mt-2">{{ experiences|length }}</p>
-  </div>
-
-  <!-- 총 시간 -->
-  <div class="bg-ai-gradient-1 bg-opacity-60 p-6 rounded-2xl shadow-xl border border-ai-blue">
-      <p class="text-gray-300">총 투입 시간</p>
-      <p id="hoursCounter" class="text-4xl font-bold mt-2">0</p>
-  </div>
-
-  <!-- 카테고리 개수 -->
-  <div class="bg-ai-gradient-1 bg-opacity-60 p-6 rounded-2xl shadow-xl border border-ai-purple-light">
-      <p class="text-gray-300">카테고리 수</p>
-      <p class="text-4xl font-bold mt-2">{{ categories|length }}</p>
-  </div>
-
-</div>
-
-<!-- 🔥 최근 활동 : 메인 섹션 -->
-<div class="mb-10">
-  <div class="flex items-center justify-between mb-4">
-    <h2 class="text-2xl font-bold">최근 활동</h2>
-    <span class="text-sm text-gray-400">최신 5개 활동만 표시됩니다.</span>
-  </div>
-
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {% for exp in experiences[:5] %}
-      <div class="bg-[#1a0a2e] p-5 rounded-xl border border-ai-purple-light shadow-lg hover:scale-[1.01] transition">
-        <div class="flex justify-between items-start gap-3">
-          <!-- 왼쪽: 활동 정보 -->
-          <div>
-            <h3 class="text-lg font-semibold text-ai-purple">
-              <a href="{{ url_for('experience_detail', exp_id=exp['id']) }}">
-                {{ exp['title'] }}
-              </a>
-            </h3>
-            <p class="text-gray-400 text-sm mt-1">{{ exp['category'] }}</p>
-            <p class="text-gray-300 mt-2 text-sm">
-              {{ exp['start_date'] }} ~ {{ exp['end_date'] or "" }}
-            </p>
-            <p class="text-gray-400 mt-3 text-sm line-clamp-3">
-              {{ exp['description'] }}
-            </p>
-          </div>
-
-          <!-- 오른쪽: 삭제 버튼 -->
-          <form method="post"
-                action="{{ url_for('delete_exp', exp_id=exp['id']) }}"
-                onsubmit="return confirm('정말 이 활동을 삭제하시겠습니까?');">
-            <button type="submit"
-                    class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded-lg">
-              삭제
-            </button>
-          </form>
-        </div>
-      </div>
-      {% endfor %}
-
-      {% if experiences|length == 0 %}
-      <p class="text-gray-400">아직 등록된 활동이 없습니다. 상단의 ‘활동 추가’를 눌러 첫 활동을 등록해 보세요.</p>
-      {% endif %}
-  </div>
-</div>
-
-<!-- 📊 카테고리 차트 : 서브 섹션 -->
-<div class="bg-[#120022] p-6 rounded-2xl shadow-xl border border-ai-purple">
-    <h2 class="text-xl font-semibold mb-4">카테고리 비율</h2>
-
-    <!-- 크기 제한 + 가운데 정렬 -->
-    <div class="h-64 max-w-xl mx-auto">
-        <canvas id="categoryChart"></canvas>
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card-dark p-3">
+      <div class="text-muted small">총 활동 수</div>
+      <div class="fs-3 fw-bold">{{ experiences|length }}</div>
     </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card-dark p-3">
+      <div class="text-muted small">총 투입 시간</div>
+      <div class="fs-3 fw-bold">{{ total_hours }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card-dark p-3">
+      <div class="text-muted small">카테고리 수</div>
+      <div class="fs-3 fw-bold">{{ category_labels|length }}</div>
+    </div>
+  </div>
 </div>
 
-<!-- 스크립트 -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card-dark p-3 mb-4">
+      <h5 class="mb-3">카테고리 비율</h5>
+      <canvas id="categoryChart" height="260"></canvas>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card-dark p-3 mb-4">
+      <h5 class="mb-3">최근 활동</h5>
+      {% if recent_experiences %}
+        <div class="list-group list-group-flush">
+          {% for exp in recent_experiences %}
+          <a href="{{ url_for('experience_detail', exp_id=exp['id']) }}"
+             class="list-group-item list-group-item-action bg-transparent text-light border-secondary">
+            <div class="d-flex justify-content-between">
+              <div>
+                <span class="badge badge-ai me-2">{{ exp['category'] }}</span>
+                <strong>{{ exp['title'] }}</strong>
+              </div>
+              <small class="text-muted">{{ exp['start_date'] }} ~ {{ exp['end_date'] or '' }}</small>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted">아직 등록된 활동이 없습니다.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
 
 <script>
-    /* 숫자 카운터 */
-    let total = {{ total_hours }};
-    let el = document.getElementById("hoursCounter");
+  const labels = {{ category_labels | tojson }};
+  const counts = {{ category_counts | tojson }};
 
-    let now = 0;
-    let timer = setInterval(() => {
-        now += Math.ceil(total / 50);
-        if (now >= total) {
-            now = total;
-            clearInterval(timer);
+  const ctx = document.getElementById('categoryChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: counts,
+        backgroundColor: [
+          '#7c3aed', '#22c55e', '#eab308', '#f97316', '#22d3ee', '#ec4899'
+        ],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      plugins: {
+        legend: {
+          labels: { color: '#e5e7eb' }
         }
-        el.innerText = now;
-    }, 20);
-
-    /* 카테고리 차트 */
-    const ctx = document.getElementById('categoryChart').getContext('2d');
-
-    const categoryLabels = {{ categories|map(attribute='category')|list|tojson }};
-    const categoryCounts = {{ categories|map(attribute='cnt')|list|tojson }};
-
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: categoryLabels,
-            datasets: [{
-                data: categoryCounts,
-                backgroundColor: [
-                    '#7b3fe4', '#5cd4ff', '#ff4ecb', '#ff884d', '#b085ff'
-                ],
-                borderColor: 'transparent'
-            }]
-        },
-        options: {
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                labels: { color: '#ffffff' }
-              }
-            }
-        }
-    });
+      }
+    }
+  });
 </script>
 
 {% endblock %}

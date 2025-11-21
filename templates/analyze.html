@@ -1,53 +1,39 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h1 class="text-3xl font-bold mb-6">
-  전체 분석 <span class="text-ai-purple">AI Summary</span>
-</h1>
+<h2 class="mb-3">전체 분석</h2>
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-  <!-- 왼쪽: 활동 리스트 -->
-  <div class="lg:col-span-1 space-y-4">
-    <h2 class="text-xl font-semibold mb-2">등록된 활동</h2>
-
-    {% if experiences %}
-      <div class="space-y-3 max-h-[480px] overflow-y-auto pr-1">
-        {% for exp in experiences %}
-        <div class="bg-[#120022] border border-ai-purple-light rounded-xl p-3">
-          <p class="text-sm text-gray-400">{{ exp['category'] }}</p>
-          <p class="font-semibold text-ai-purple mt-1">{{ exp['title'] }}</p>
-          <p class="text-xs text-gray-400 mt-1">
-            {{ exp['start_date'] }} ~ {{ exp['end_date'] or '' }}
-          </p>
-        </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <p class="text-gray-400 text-sm">아직 등록된 활동이 없습니다. 먼저 활동을 추가해 주세요.</p>
-    {% endif %}
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card-dark p-3">
+      <h5 class="mb-3">등록된 활동</h5>
+      {% if experiences %}
+        <ul class="list-group list-group-flush">
+          {% for e in experiences %}
+          <li class="list-group-item bg-transparent text-light border-secondary">
+            <span class="badge badge-ai me-2">{{ e['category'] }}</span>
+            <strong>{{ e['title'] }}</strong><br>
+            <small class="text-muted">
+              {{ e['start_date'] }} ~ {{ e['end_date'] or '' }} · {{ e['hours'] }}시간
+            </small>
+          </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted">아직 활동이 없습니다.</p>
+      {% endif %}
+    </div>
   </div>
 
-  <!-- 오른쪽: AI 분석 결과 -->
-  <div class="lg:col-span-2">
-    <div class="bg-[#120022] border border-ai-purple rounded-2xl shadow-xl p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-semibold">분석 결과</h2>
-        <span class="text-xs text-gray-400">AI가 전체 포트폴리오 기준으로 분석한 내용입니다.</span>
-      </div>
-
+  <div class="col-lg-6">
+    <div class="card-dark p-3">
+      <h5 class="mb-3">분석 결과</h5>
       {% if tips %}
-        <div class="space-y-4">
-          {% for t in tips %}
-          <div class="bg-[#1a0a2e] rounded-xl p-4 text-sm leading-relaxed whitespace-pre-line">
-            {{ t }}
-          </div>
-          {% endfor %}
+        <div style="white-space: pre-line;">
+          {{ tips[0] }}
         </div>
       {% else %}
-        <p class="text-gray-400 text-sm">
-          아직 분석 결과가 없습니다. 상단 메뉴에서 활동을 충분히 입력한 뒤 이 페이지를 다시 열어보세요.
-        </p>
+        <p class="text-muted">오른쪽 상단 메뉴에서 활동을 먼저 추가해 주세요.</p>
       {% endif %}
     </div>
   </div>

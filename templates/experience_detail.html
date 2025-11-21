@@ -5,7 +5,7 @@
 
 <div class="card-dark p-4 mb-4">
   <div class="mb-2">
-    <span class="badge bg-primary me-2">{{ exp['category'] }}</span>
+    <span class="badge badge-ai me-2">{{ exp['category'] }}</span>
     <span class="text-muted small">{{ exp['start_date'] }} ~ {{ exp['end_date'] or '' }}</span>
   </div>
 
@@ -43,9 +43,9 @@
 </div>
 
 {% if star_analysis %}
-  <div class="card">
-    <div class="card-header">AI STAR 분석 결과</div>
-    <div class="card-body" style="white-space: pre-line;">
+  <div class="card-dark p-4">
+    <h5 class="mb-3">AI STAR 분석 결과</h5>
+    <div style="white-space: pre-line;">
       {{ star_analysis }}
     </div>
   </div>

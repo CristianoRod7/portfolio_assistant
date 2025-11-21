@@ -1,71 +1,62 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h1 class="text-3xl font-bold mb-6">
-  자기소개서 생성 <span class="text-ai-purple">Cover Letter</span>
-</h1>
+<h2 class="mb-3">자동 자기소개서 생성</h2>
 
-<div class="max-w-4xl mx-auto space-y-6">
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card-dark p-4">
+      <h4 class="mb-3">목표 설정</h4>
+      <form method="post" data-ai-form="true">
+        <div class="mb-3">
+          <label class="form-label">지원 회사</label>
+          <select name="company" class="form-select">
+            <option value="">회사 선택</option>
+            {% for c in companies %}
+            <option value="{{ c }}" {% if c == target_company %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
 
-  <!-- 설정 폼 -->
-  <div class="bg-[#120022] border border-ai-purple rounded-2xl shadow-xl p-6">
-    <h2 class="text-xl font-semibold mb-4">목표 설정</h2>
+        <div class="mb-3">
+          <label class="form-label">지원 직무 / 포지션</label>
+          <input type="text" name="role" class="form-control"
+                 placeholder="예: 전산직, 데이터 분석, 백엔드 개발 등"
+                 value="{{ target_role or '' }}">
+        </div>
 
-    <form method="post" class="space-y-4">
-      <div>
-        <label class="block text-sm text-gray-300 mb-1">목표 회사 (선택)</label>
-        <select
-          name="company"
-          class="w-full bg-white text-gray-900 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-ai-purple"
-        >
-          <option value="">-- 회사를 선택하세요 (선택) --</option>
-          {% for c in company_options %}
-          <option value="{{ c }}" {% if target_company == c %}selected{% endif %}>
-            {{ c }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <div>
-        <label class="block text-sm text-gray-300 mb-1">목표 직무 / 포지션 (선택)</label>
-        <input type="text" name="role"
-               placeholder="예) 전산직, 데이터 분석, 백엔드 개발 등"
-               value="{{ target_role or '' }}"
-               class="w-full bg-[#1a0a2e] text-gray-100 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-ai-purple">
-      </div>
-
-      <button type="submit"
-              class="px-5 py-2 rounded-lg bg-ai-purple hover:bg-ai-purple-light font-semibold
-              data-ai-submit">
-        AI로 자기소개서 초안 생성
-      </button>
-    </form>
-  </div>
-
-  <!-- 생성된 자소서 내용 -->
-  {% if cover_text %}
-  <div class="no-print flex justify-end mb-2">
-    <button type="button"
-            class="px-4 py-2 rounded-lg border border-gray-400 text-sm hover:bg-gray-700"
-            onclick="window.print()">
-      이 내용 PDF로 저장 (인쇄)
-    </button>
-  </div>
-
-  <div class="bg-white text-gray-900 rounded-2xl shadow-2xl p-8 leading-relaxed">
-    <h2 class="text-2xl font-bold mb-4">자기소개서 초안</h2>
-    <div class="whitespace-pre-line text-sm">
-      {{ cover_text }}
+        <button type="submit"
+                class="px-5 py-2 rounded-lg bg-ai-purple hover:bg-ai-purple-light font-semibold btn btn-ai w-100"
+                data-ai-submit>
+          AI로 자기소개서 초안 생성
+        </button>
+      </form>
     </div>
   </div>
-  {% else %}
-  <p class="text-gray-400 text-sm">
-    목표 회사/직무를 설정한 뒤 <span class="text-ai-purple">[AI로 자기소개서 초안 생성]</span> 버튼을 누르면
-    아래에 바로 편집해서 제출할 수 있는 초안이 생성됩니다.
-  </p>
-  {% endif %}
 
+  <div class="col-lg-7">
+    <div class="d-flex justify-content-end mb-2 no-print">
+      {% if cover_letter_text %}
+      <button type="button" class="btn btn-outline-light btn-sm"
+              onclick="window.print()">
+        이 내용 PDF로 저장 (인쇄)
+      </button>
+      {% endif %}
+    </div>
+
+    <div class="card-dark p-4">
+      <h4 class="mb-3">자기소개서 초안</h4>
+      {% if cover_letter_text %}
+        <div style="white-space: pre-line;">
+          {{ cover_letter_text }}
+        </div>
+      {% else %}
+        <p class="text-muted">
+          왼쪽에서 회사/직무를 설정한 뒤 <strong>AI로 자기소개서 초안 생성</strong> 버튼을 눌러 주세요.
+        </p>
+      {% endif %}
+    </div>
+  </div>
 </div>
 
 {% endblock %}
