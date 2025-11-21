@@ -1,87 +1,103 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h1 class="mb-3 fw-bold">Dashboard <span class="text-info">AI Insight</span></h1>
+<h1 class="h3 mb-4">Dashboard <span class="text-info">AI Insight</span></h1>
 
 <div class="row g-3 mb-4">
   <div class="col-md-4">
-    <div class="card-dark p-3">
-      <div class="text-muted small">총 활동 수</div>
-      <div class="fs-3 fw-bold">{{ experiences|length }}</div>
+    <div class="card card-dark p-3 h-100">
+      <div class="small text-secondary mb-1">총 활동 수</div>
+      <div class="fs-3 fw-bold">{{ total_count or 0 }}</div>
     </div>
   </div>
   <div class="col-md-4">
-    <div class="card-dark p-3">
-      <div class="text-muted small">총 투입 시간</div>
-      <div class="fs-3 fw-bold">{{ total_hours }}</div>
+    <div class="card card-dark p-3 h-100">
+      <div class="small text-secondary mb-1">총 투입 시간</div>
+      <div class="fs-3 fw-bold">{{ total_hours or 0 }} <span class="fs-6">시간</span></div>
     </div>
   </div>
   <div class="col-md-4">
-    <div class="card-dark p-3">
-      <div class="text-muted small">카테고리 수</div>
-      <div class="fs-3 fw-bold">{{ category_labels|length }}</div>
+    <div class="card card-dark p-3 h-100">
+      <div class="small text-secondary mb-1">카테고리 수</div>
+      <div class="fs-3 fw-bold">{{ categories|length }}</div>
     </div>
   </div>
 </div>
 
 <div class="row g-4">
   <div class="col-lg-7">
-    <div class="card-dark p-3 mb-4">
-      <h5 class="mb-3">카테고리 비율</h5>
-      <canvas id="categoryChart" height="260"></canvas>
+    <div class="card card-dark p-3 mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="h5 mb-0">최근 활동</h2>
+        <a href="{{ url_for('add') }}" class="btn btn-sm btn-ai">활동 추가</a>
+      </div>
+
+      {% if latest %}
+        <div class="mb-2">
+          <span class="badge bg-primary badge-pill me-2">{{ latest['category'] }}</span>
+          <span class="fw-semibold">{{ latest['title'] }}</span>
+        </div>
+        <div class="small text-secondary mb-1">
+          {{ latest['start_date'] }} ~ {{ latest['end_date'] or '' }} ·
+          {{ latest['hours'] or 0 }}시간
+        </div>
+        <p class="small mb-0">{{ latest['description'] or '' }}</p>
+      {% else %}
+        <p class="small mb-0 text-secondary">아직 등록된 활동이 없습니다.</p>
+      {% endif %}
+    </div>
+
+    <div class="card card-dark p-3">
+      <h2 class="h6 mb-3">전체 활동 리스트</h2>
+      <ul class="list-unstyled mb-0 small">
+        {% for exp in experiences %}
+          <li class="mb-2">
+            <a class="text-decoration-none text-light"
+               href="{{ url_for('experience_detail', exp_id=exp['id']) }}">
+              <span class="badge bg-secondary badge-pill me-2">{{ exp['category'] }}</span>
+              {{ exp['title'] }}
+              <span class="text-secondary">
+                ({{ exp['start_date'] }} ~ {{ exp['end_date'] or '' }}, {{ exp['hours'] or 0 }}시간)
+              </span>
+            </a>
+          </li>
+        {% endfor %}
+        {% if experiences|length == 0 %}
+          <li class="text-secondary">등록된 활동이 없습니다.</li>
+        {% endif %}
+      </ul>
     </div>
   </div>
 
   <div class="col-lg-5">
-    <div class="card-dark p-3 mb-4">
-      <h5 class="mb-3">최근 활동</h5>
-      {% if recent_experiences %}
-        <div class="list-group list-group-flush">
-          {% for exp in recent_experiences %}
-          <a href="{{ url_for('experience_detail', exp_id=exp['id']) }}"
-             class="list-group-item list-group-item-action bg-transparent text-light border-secondary">
-            <div class="d-flex justify-content-between">
-              <div>
-                <span class="badge badge-ai me-2">{{ exp['category'] }}</span>
-                <strong>{{ exp['title'] }}</strong>
-              </div>
-              <small class="text-muted">{{ exp['start_date'] }} ~ {{ exp['end_date'] or '' }}</small>
-            </div>
-          </a>
-          {% endfor %}
-        </div>
-      {% else %}
-        <p class="text-muted">아직 등록된 활동이 없습니다.</p>
-      {% endif %}
+    <div class="card card-dark p-3 mb-3">
+      <h2 class="h6 mb-3">카테고리 비율</h2>
+      <ul class="list-unstyled small mb-0">
+        {% for c in categories %}
+          <li class="d-flex justify-content-between">
+            <span>{{ c['category'] }}</span>
+            <span class="text-secondary">{{ c['cnt'] }}개</span>
+          </li>
+        {% endfor %}
+        {% if categories|length == 0 %}
+          <li class="text-secondary">카테고리 통계 없음</li>
+        {% endif %}
+      </ul>
+    </div>
+
+    <div class="card card-dark p-3">
+      <h2 class="h6 mb-2">AI 기능 바로가기</h2>
+      <p class="small text-secondary mb-3">
+        아래 기능들은 모두 지금까지 입력한 활동을 기반으로 동작합니다.
+      </p>
+      <div class="d-grid gap-2">
+        <a href="{{ url_for('analyze') }}" class="btn btn-ai btn-sm">전체 활동 AI 분석</a>
+        <a href="{{ url_for('company_analyze') }}" class="btn btn-outline-light btn-sm">회사 맞춤 분석</a>
+        <a href="{{ url_for('resume') }}" class="btn btn-outline-light btn-sm">이력서 경력 요약 생성</a>
+        <a href="{{ url_for('cover_letter') }}" class="btn btn-outline-light btn-sm">자기소개서 초안 생성</a>
+      </div>
     </div>
   </div>
 </div>
-
-<script>
-  const labels = {{ category_labels | tojson }};
-  const counts = {{ category_counts | tojson }};
-
-  const ctx = document.getElementById('categoryChart').getContext('2d');
-  new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: labels,
-      datasets: [{
-        data: counts,
-        backgroundColor: [
-          '#7c3aed', '#22c55e', '#eab308', '#f97316', '#22d3ee', '#ec4899'
-        ],
-        borderWidth: 0
-      }]
-    },
-    options: {
-      plugins: {
-        legend: {
-          labels: { color: '#e5e7eb' }
-        }
-      }
-    }
-  });
-</script>
 
 {% endblock %}

@@ -1,62 +1,64 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2 class="mb-3">자동 이력서 생성</h2>
+<h2 class="h4 mb-3">자동 이력서 경력 요약 생성</h2>
 
-<div class="row g-4">
-  <div class="col-lg-5">
-    <div class="card-dark p-4">
-      <h4 class="mb-3">목표 설정</h4>
-      <form method="post" data-ai-form="true">
-        <div class="mb-3">
-          <label class="form-label">목표 회사 (선택)</label>
-          <select name="company" class="form-select">
-            <option value="">회사 선택</option>
-            {% for c in companies %}
-            <option value="{{ c }}" {% if c == target_company %}selected{% endif %}>{{ c }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">목표 직무 / 포지션 (선택)</label>
-          <input type="text" name="role" class="form-control"
-                 placeholder="예: 전산직, 데이터 분석, 백엔드 개발 등"
-                 value="{{ target_role or '' }}">
-        </div>
-
-        <button type="submit"
-                class="px-5 py-2 rounded-lg bg-ai-purple hover:bg-ai-purple-light font-semibold btn btn-ai w-100"
-                data-ai-submit>
-          AI로 이력서용 경력 요약 생성
-        </button>
-      </form>
+<div class="card card-dark p-3 mb-4">
+  <form method="post" class="row g-3">
+    <div class="col-md-5">
+      <label class="form-label">목표 회사 (선택)</label>
+      <select name="company" class="form-select">
+        <option value="">입력 안 함</option>
+        {% for c in company_options %}
+          <option value="{{ c }}" {% if target_company == c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
     </div>
-  </div>
-
-  <div class="col-lg-7">
-    <div class="d-flex justify-content-end mb-2 no-print">
-      {% if resume_text %}
-      <button type="button" class="btn btn-outline-light btn-sm"
-              onclick="window.print()">
-        이 내용 PDF로 저장 (인쇄)
-      </button>
-      {% endif %}
+    <div class="col-md-5">
+      <label class="form-label">목표 직무 / 포지션 (선택)</label>
+      <input type="text" name="role" class="form-control"
+             placeholder="예) 전산직, 데이터 분석, 백엔드 개발 등"
+             value="{{ target_role or '' }}">
     </div>
-
-    <div class="card-dark p-4">
-      <h4 class="mb-3">이력서용 경력 / 역량 요약</h4>
-      {% if resume_text %}
-        <div style="white-space: pre-line;">
-          {{ resume_text }}
-        </div>
-      {% else %}
-        <p class="text-muted">
-          왼쪽에서 회사/직무를 설정한 뒤 <strong>AI로 이력서용 경력 요약 생성</strong> 버튼을 눌러 주세요.
-        </p>
-      {% endif %}
+    <div class="col-md-2 d-flex align-items-end">
+      <button type="submit" class="btn btn-ai w-100">AI로 이력서 요약 생성</button>
     </div>
+  </form>
+</div>
+
+{% if error_msg %}
+<div class="alert alert-danger small card-dark border-0">
+  {{ error_msg }}
+</div>
+{% endif %}
+
+{% if resume_text %}
+<div class="d-flex justify-content-end mb-2 btn-print-hide">
+  <button type="button" class="btn btn-outline-light btn-sm"
+          onclick="window.print()">
+    이 내용 PDF로 저장 (인쇄)
+  </button>
+</div>
+
+<div class="card card-dark p-3 mb-4">
+  <h3 class="h6 mb-3">이력서 상단 경력·역량 요약</h3>
+  <div class="small" style="white-space: pre-line;">
+    {{ resume_text }}
   </div>
 </div>
+{% endif %}
+
+<h4 class="h6 mb-2">현재 등록된 활동 요약</h4>
+<ul class="list-unstyled small">
+  {% for exp in experiences %}
+    <li>
+      [{{ exp['category'] }}] {{ exp['title'] }}
+      ({{ exp['start_date'] }} ~ {{ exp['end_date'] or '' }})
+    </li>
+  {% endfor %}
+  {% if experiences|length == 0 %}
+    <li class="text-secondary">아직 활동이 없습니다.</li>
+  {% endif %}
+</ul>
 
 {% endblock %}

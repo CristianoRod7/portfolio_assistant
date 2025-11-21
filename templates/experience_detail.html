@@ -1,54 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2 class="mb-3">활동 상세</h2>
+<h2 class="h4 mb-3">활동 상세</h2>
 
-<div class="card-dark p-4 mb-4">
+<div class="card card-dark p-3 mb-3">
   <div class="mb-2">
-    <span class="badge badge-ai me-2">{{ exp['category'] }}</span>
-    <span class="text-muted small">{{ exp['start_date'] }} ~ {{ exp['end_date'] or '' }}</span>
+    <span class="badge bg-primary badge-pill me-2">{{ exp['category'] }}</span>
+    <span class="fw-semibold">{{ exp['title'] }}</span>
   </div>
-
-  <h4 class="mb-3">{{ exp['title'] }}</h4>
-
-  <h6 class="text-secondary">투입 시간</h6>
-  <p>{{ exp['hours'] }} 시간</p>
-
-  {% if exp['description'] %}
-    <h6 class="text-secondary">설명</h6>
-    <p>{{ exp['description'] }}</p>
-  {% else %}
-    <p class="text-muted">설명이 없습니다.</p>
-  {% endif %}
-
-  {% if exp['skills'] %}
-    <h6 class="text-secondary">기술 / 키워드</h6>
-    <p>{{ exp['skills'] }}</p>
-  {% endif %}
-
-  <div class="mt-3">
-    <a href="{{ url_for('index') }}" class="btn btn-secondary btn-sm">← 목록으로</a>
-
-    <form method="post"
-          action="{{ url_for('experience_star', exp_id=exp['id']) }}"
-          class="d-inline"
-          data-ai-form="true">
-      <button type="submit"
-              class="btn btn-primary btn-sm"
-              data-ai-submit>
-        AI STAR 분석하기
-      </button>
-    </form>
+  <div class="small text-secondary mb-1">
+    기간: {{ exp['start_date'] }} ~ {{ exp['end_date'] or '' }}
+    · {{ exp['hours'] or 0 }}시간
   </div>
+  <div class="small text-secondary mb-2">
+    기술/키워드: {{ exp['skills'] or '—' }}
+  </div>
+  <p class="small mb-0" style="white-space: pre-line;">{{ exp['description'] or '' }}</p>
 </div>
 
-{% if star_analysis %}
-  <div class="card-dark p-4">
-    <h5 class="mb-3">AI STAR 분석 결과</h5>
-    <div style="white-space: pre-line;">
-      {{ star_analysis }}
-    </div>
-  </div>
-{% endif %}
+<a href="{{ url_for('index') }}" class="btn btn-outline-light btn-sm">← 목록으로</a>
 
 {% endblock %}

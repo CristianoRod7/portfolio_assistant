@@ -1,48 +1,43 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2 class="mb-3">활동 추가</h2>
+<h2 class="h4 mb-3">활동 추가</h2>
 
-<div class="card-dark p-4">
+<div class="card card-dark p-3">
   <form method="post">
     <div class="mb-3">
       <label class="form-label">카테고리</label>
-      <input type="text" name="category" class="form-control" placeholder="예: 공모전, 프로젝트, 자격증">
+      <input type="text" name="category" class="form-control" placeholder="예) 대회, 공모전, 인턴, 프로젝트 등">
     </div>
-
     <div class="mb-3">
-      <label class="form-label">활동 제목</label>
-      <input type="text" name="title" class="form-control" required>
+      <label class="form-label">제목</label>
+      <input type="text" name="title" class="form-control" placeholder="예) OO 공모전 입상, OO 해커톤 수상 등">
     </div>
-
-    <div class="row mb-3">
-      <div class="col">
+    <div class="mb-3">
+      <label class="form-label">설명</label>
+      <textarea name="description" rows="4" class="form-control"
+                placeholder="무엇을 했고, 어떤 성과를 냈는지 자세히 써주세요."></textarea>
+    </div>
+    <div class="row g-3 mb-3">
+      <div class="col-md-4">
         <label class="form-label">시작일</label>
         <input type="date" name="start_date" class="form-control">
       </div>
-      <div class="col">
+      <div class="col-md-4">
         <label class="form-label">종료일</label>
         <input type="date" name="end_date" class="form-control">
       </div>
+      <div class="col-md-4">
+        <label class="form-label">투입 시간(시간)</label>
+        <input type="number" name="hours" class="form-control" min="0">
+      </div>
     </div>
-
-    <div class="mb-3">
-      <label class="form-label">투입 시간(시간)</label>
-      <input type="number" name="hours" class="form-control" min="0">
-    </div>
-
     <div class="mb-3">
       <label class="form-label">사용 기술 / 키워드</label>
-      <input type="text" name="skills" class="form-control" placeholder="예: Python, Flask, SQL, 리눅스">
-    </div>
-
-    <div class="mb-3">
-      <label class="form-label">설명</label>
-      <textarea name="description" class="form-control" rows="4"></textarea>
+      <input type="text" name="skills" class="form-control" placeholder="예) Python, Flask, SQL, 데이터 분석 등">
     </div>
 
     <button type="submit" class="btn btn-ai">저장</button>
-    <a href="{{ url_for('index') }}" class="btn btn-secondary ms-2">취소</a>
   </form>
 </div>
 

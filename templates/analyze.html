@@ -1,42 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2 class="mb-3">전체 분석</h2>
+<h2 class="h4 mb-3">전체 활동 AI 분석</h2>
 
-<div class="row g-4">
-  <div class="col-lg-6">
-    <div class="card-dark p-3">
-      <h5 class="mb-3">등록된 활동</h5>
-      {% if experiences %}
-        <ul class="list-group list-group-flush">
-          {% for e in experiences %}
-          <li class="list-group-item bg-transparent text-light border-secondary">
-            <span class="badge badge-ai me-2">{{ e['category'] }}</span>
-            <strong>{{ e['title'] }}</strong><br>
-            <small class="text-muted">
-              {{ e['start_date'] }} ~ {{ e['end_date'] or '' }} · {{ e['hours'] }}시간
-            </small>
-          </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p class="text-muted">아직 활동이 없습니다.</p>
-      {% endif %}
-    </div>
-  </div>
-
-  <div class="col-lg-6">
-    <div class="card-dark p-3">
-      <h5 class="mb-3">분석 결과</h5>
-      {% if tips %}
-        <div style="white-space: pre-line;">
-          {{ tips[0] }}
-        </div>
-      {% else %}
-        <p class="text-muted">오른쪽 상단 메뉴에서 활동을 먼저 추가해 주세요.</p>
-      {% endif %}
-    </div>
-  </div>
+<div class="d-flex justify-content-end mb-2">
+  <button class="btn btn-outline-light btn-sm" onclick="window.print()">PDF로 저장 / 인쇄</button>
 </div>
+
+<div class="card card-dark p-3 mb-4">
+  <h3 class="h6 mb-3">분석 결과</h3>
+  {% for t in tips %}
+    <p class="small mb-2" style="white-space: pre-line;">{{ t }}</p>
+  {% endfor %}
+</div>
+
+<h4 class="h6 mb-2">현재 등록된 활동</h4>
+<ul class="list-unstyled small">
+  {% for exp in experiences %}
+    <li>
+      [{{ exp['category'] }}] {{ exp['title'] }}
+      ({{ exp['start_date'] }} ~ {{ exp['end_date'] or '' }}, {{ exp['hours'] or 0 }}시간)
+    </li>
+  {% endfor %}
+  {% if experiences|length == 0 %}
+    <li class="text-secondary">아직 활동이 없습니다.</li>
+  {% endif %}
+</ul>
 
 {% endblock %}
