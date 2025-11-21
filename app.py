@@ -215,7 +215,7 @@ def call_groq(prompt: str, system_msg: str) -> str:
     try:
         completion = client.chat.completions.create(
             # ▼▼▼ 서버 속도 최적화를 위해 가장 빠른 모델로 통일 ▼▼▼
-            model="llama3-8b-8192", 
+            model="llama-3.3-70b-versatile", 
             messages=[
                 {"role": "system", "content": system_msg},
                 {"role": "user", "content": prompt},
