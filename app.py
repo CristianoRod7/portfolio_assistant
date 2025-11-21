@@ -2,38 +2,30 @@ import os
 import sqlite3
 from datetime import datetime
 
-from groq import Groq
-from flask import Flask, render_template, request, redirect, url_for
+import requests
+from flask import (
+    Flask,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    abort,
+)
 
-# =========================
-# 설정
-# =========================
 DB_NAME = "portfolio.db"
-COMPANY_OPTIONS = [
-    "LH (한국토지주택공사)",
-    "한국전력공사",
-    "한국중부발전",
-    "한국도로공사",
-    "네이버",
-    "카카오",
-    "삼성전자",
-    "게임회사 (넥슨/크래프톤 등)",
-    "공기업 전반",
-    "IT 기업 전반",
-]
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 app = Flask(__name__)
 
-# GROQ_API_KEY 는 환경변수에 setx 로 미리 설정해둔 상태여야 함
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-
 
 # =========================
-# DB 유틸
+# DB 관련 함수
 # =========================
 def get_db():
     conn = sqlite3.connect(DB_NAME)
-    conn.row_factory = sqlite3.Row  # dict처럼 접근 가능
+    conn.row_factory = sqlite3.Row
     return conn
 
 
@@ -58,22 +50,68 @@ def init_db():
 
 
 # =========================
-# 메인 대시보드
+# 공통: Groq 호출 함수
+# =========================
+def call_groq(prompt: str, system: str = "", temperature: float = 0.4) -> str:
+    """Groq HTTP API 호출 (SDK 안 쓰고 requests로 직접 호출)."""
+    if not GROQ_API_KEY:
+        # 키 없으면 바로 안내
+        return "GROQ_API_KEY 환경 변수가 설정되어 있지 않습니다. 관리자에게 문의해 주세요."
+
+    messages = []
+    if system:
+        messages.append({"role": "system", "content": system})
+    messages.append({"role": "user", "content": prompt})
+
+    payload = {
+        "model": "llama-3.1-8b-instant",
+        "messages": messages,
+        "temperature": temperature,
+    }
+
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    resp = requests.post(GROQ_API_URL, json=payload, headers=headers, timeout=60)
+    resp.raise_for_status()
+    data = resp.json()
+    return data["choices"][0]["message"]["content"]
+
+
+# =========================
+# 라우팅
 # =========================
 @app.route("/")
 def index():
     conn = get_db()
+
     experiences = conn.execute(
-        "SELECT * FROM experience ORDER BY start_date DESC"
+        "SELECT * FROM experience ORDER BY start_date DESC, id DESC"
     ).fetchall()
 
     total_hours_row = conn.execute(
-        "SELECT SUM(hours) AS total_hours FROM experience"
+        "SELECT IFNULL(SUM(hours), 0) AS total_hours FROM experience"
     ).fetchone()
-    total_hours = total_hours_row["total_hours"] or 0
+    total_hours = total_hours_row["total_hours"]
 
     categories = conn.execute(
-        "SELECT category, COUNT(*) AS cnt FROM experience GROUP BY category"
+        """
+        SELECT category, COUNT(*) AS cnt
+        FROM experience
+        GROUP BY category
+        ORDER BY cnt DESC
+        """
+    ).fetchall()
+
+    # 최근 활동 5개
+    recent = conn.execute(
+        """
+        SELECT * FROM experience
+        ORDER BY start_date DESC, id DESC
+        LIMIT 5
+        """
     ).fetchall()
 
     return render_template(
@@ -81,12 +119,10 @@ def index():
         experiences=experiences,
         total_hours=total_hours,
         categories=categories,
+        recent=recent,
     )
 
 
-# =========================
-# 활동 추가
-# =========================
 @app.route("/add", methods=["GET", "POST"])
 def add():
     if request.method == "POST":
@@ -130,20 +166,29 @@ def add():
     return render_template("add.html")
 
 
-# =========================
-# 전체 포트폴리오 AI 분석
-# =========================
+@app.route("/experience/<int:exp_id>")
+def experience_detail(exp_id):
+    conn = get_db()
+    exp = conn.execute(
+        "SELECT * FROM experience WHERE id = ?", (exp_id,)
+    ).fetchone()
+    if not exp:
+        abort(404)
+
+    return render_template("experience_detail.html", exp=exp)
+
+
 @app.route("/analyze")
 def analyze():
     conn = get_db()
     exps = conn.execute("SELECT * FROM experience").fetchall()
 
-    # 활동 없으면 AI 안 부르고 안내 메시지
+    # 활동 없으면 안내만
     if not exps:
         tips = ["아직 등록된 활동이 없습니다. 최소 3개 이상 입력하면 AI 분석이 더 정확해집니다."]
         return render_template("analyze.html", experiences=exps, tips=tips)
 
-    # 경험을 프롬프트용 텍스트로 정리
+    # 프롬프트용 텍스트 만들기
     exp_lines = []
     for e in exps:
         line = f"""
@@ -180,60 +225,40 @@ def analyze():
         completion = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[
-                {
-                    "role": "system",
-                    "content": "너는 한국 대학생을 도와주는 커리어 분석 전문가이다.",
-                },
+                {"role": "system", "content": "너는 한국 대학생을 도와주는 커리어 분석 전문가이다."},
                 {"role": "user", "content": prompt},
             ],
             temperature=0.4,
         )
-
         ai_text = completion.choices[0].message.content
         tips = [ai_text]
 
     except Exception as e:
-         tips = [f"AI 분석 중 오류가 발생했습니다: {e}"]
-         return render_template("analyze.html", experiences=exps, tips=tips)
+        tips = [f"AI 분석 중 오류가 발생했습니다: {e}"]
+
+    # 공통 리턴 한 번만
+    return render_template("analyze.html", experiences=exps, tips=tips)
 
 
-# =========================
-# 회사 맞춤 분석
-# =========================
-@app.route("/analyze/company", methods=["GET", "POST"])
+@app.route("/company_analyze", methods=["GET", "POST"])
 def company_analyze():
     conn = get_db()
     exps = conn.execute("SELECT * FROM experience").fetchall()
-
-    if not exps:
-        # 활동 없으면 안내만
-        msg = "아직 등록된 활동이 없습니다. 활동을 몇 개 입력한 뒤 회사 맞춤 분석을 이용해 주세요."
-        return render_template(
-            "company_analyze.html",
-            experiences=exps,
-            company_options=COMPANY_OPTIONS,
-            selected_company=None,
-            selected_role="",
-            analysis_text=msg,
-        )
-
-    selected_company = None
-    selected_role = ""
     analysis_text = None
+    target_company = None
+    target_role = None
 
     if request.method == "POST":
-        selected_company = request.form.get("company") or None
-        selected_role = request.form.get("role", "").strip()
+        target_company = request.form.get("company") or ""
+        target_role = request.form.get("role") or ""
 
-        if not selected_company:
-            analysis_text = "회사를 선택해 주세요."
+        if not exps:
+            analysis_text = "등록된 활동이 없어 회사 맞춤 분석을 할 수 없습니다. 먼저 활동을 추가해 주세요."
         else:
-            # 경험 텍스트 정리
             exp_lines = []
             for e in exps:
                 line = f"""
-                - 카테고리: {e['category']}
-                  제목: {e['title']}
+                - [{e['category']}] {e['title']}
                   기간: {e['start_date']} ~ {e['end_date'] or ''}
                   기술/키워드: {e['skills'] or ''}
                   설명: {e['description'] or ''}
@@ -243,339 +268,218 @@ def company_analyze():
 
             portfolio_text = "\n".join(exp_lines)
 
-            role_text = selected_role if selected_role else "관련 직무(구체 미입력)"
-
             prompt = f"""
-너는 한국 대학생의 포트폴리오를 분석하는 커리어 코치이다.
-학생 전공: 컴퓨터공학
+다음은 한 대학생의 활동 목록입니다.
 
-목표 회사: {selected_company}
-목표 직무: {role_text}
+[학생 정보]
+- 전공: 컴퓨터공학
+- 관심: 공기업 및 IT 기업 취업
 
-[학생의 활동 목록]
-{portfolio_text}
-
-아래 기준으로 {selected_company} 입사 관점에서 분석해줘:
-
-1) 이 학생이 {selected_company} {role_text} 지원자라고 가정했을 때,
-   돋보이는 강점 3가지를 bullet 형식으로 써라.
-
-2) {selected_company} 기준에서 아쉬운 점 / 리스크 3가지를 bullet 형식으로 써라.
-
-3) 앞으로 1~3개월 안에 하면 좋은 '단기 액션 플랜' 3가지를
-   매우 구체적으로 제안해라. (예: 어떤 자격증, 어떤 프로젝트, 어떤 경험)
-
-4) 6~12개월 안에 준비하면 좋은 '중·장기 액션 플랜' 3가지를 제안해라.
-
-5) 마지막에, {selected_company} 1차 자기소개서나 면접에서
-   바로 쓸 수 있는 한 문장 어필 포인트 2개를 만들어라.
-   (예: "저는 OO 경험을 통해 △△ 역량을 검증받았습니다." 이런 느낌)
-
-형식: 한국어, 존댓말, 실제 취업 컨설턴트가 말해주는 톤으로 작성.
-"""
-
-            try:
-                completion = client.chat.completions.create(
-                    model="llama-3.1-8b-instant",
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": "너는 한국 공기업/IT기업 취업을 도와주는 전문 커리어 코치이다.",
-                        },
-                        {"role": "user", "content": prompt},
-                    ],
-                    temperature=0.4,
-                )
-                analysis_text = completion.choices[0].message.content
-            except Exception as e:
-                analysis_text = f"회사 맞춤 분석 중 오류가 발생했습니다: {e}"
-
-    # GET 이거나, POST 후 렌더링
-    return render_template(
-        "company_analyze.html",
-        experiences=exps,
-        company_options=COMPANY_OPTIONS,
-        selected_company=selected_company,
-        selected_role=selected_role,
-        analysis_text=analysis_text,
-    )
-# =========================
-# 자동 이력서 생성
-# =========================
-@app.route("/resume", methods=["GET", "POST"])
-def generate_resume():
-    conn = get_db()
-    exps = conn.execute("SELECT * FROM experience ORDER BY start_date DESC").fetchall()
-
-    if not exps:
-        msg = "아직 등록된 활동이 없습니다. 활동을 몇 개 입력한 뒤 이력서 생성을 이용해 주세요."
-        return render_template(
-            "resume.html",
-            experiences=exps,
-            target_company="",
-            target_role="",
-            resume_text=msg,
-            COMPANY_OPTIONS=COMPANY_OPTIONS,
-        )
-
-    target_company = ""
-    target_role = ""
-    resume_text = None
-
-    if request.method == "POST":
-        target_company = request.form.get("company", "").strip()
-        target_role = request.form.get("role", "").strip()
-
-        company_text = target_company if target_company else "특정 회사 미지정"
-        role_text = target_role if target_role else "전산/IT 관련 직무"
-
-        # 활동들 텍스트 정리
-        exp_lines = []
-        for e in exps:
-            line = f"""
-            - 카테고리: {e['category']}
-              제목: {e['title']}
-              기간: {e['start_date']} ~ {e['end_date'] or ''}
-              기술/키워드: {e['skills'] or ''}
-              설명: {e['description'] or ''}
-              투입 시간: {e['hours']}시간
-            """
-            exp_lines.append(line)
-
-        portfolio_text = "\n".join(exp_lines)
-
-        prompt = f"""
-너는 한국 대학생의 이력서를 정리해주는 커리어 코치이다.
-
-학생 전공: 컴퓨터공학
-목표 회사: {company_text}
-목표 직무: {role_text}
-
-아래는 학생의 활동 목록이다.
+[목표 회사/직무]
+- 회사: {target_company}
+- 직무: {target_role}
 
 [활동 목록]
 {portfolio_text}
 
-이 정보를 바탕으로, 한국식 이력서의 '경험 및 역량' 파트를 만드는 느낌으로 아래 형식대로 작성해줘.
+아래 기준에 맞춰 회사 맞춤 분석을 해줘:
 
-1. 한 줄 요약 프로필 (예: "공공데이터 분석과 웹 개발 프로젝트 경험을 갖춘 컴퓨터공학 전공자입니다.")
-2. 핵심 역량 3~5개 (bullet, 예: Python, Flask, 리눅스, 데이터 분석, 공모전 경험 등)
-3. 주요 경험 정리 (각 경험마다)
-   - 경험명: (활동 제목)
-   - 기간:
-   - 역할 / 수행 내용: (구체적으로 3~4줄)
-   - 성과 / 결과: (수치, 결과 중심으로 2~3줄)
+1) {target_company} / {target_role} 기준으로 이 학생이 가진 강점을 3~5개 bullet으로 정리
+2) 해당 회사/직무에서 보완해야 할 점을 3~5개 bullet으로 정리
+3) 자기소개서나 면접에서 어필하기 좋은 에피소드 후보를 3개 정도 뽑아서,
+   각 에피소드마다 한 줄 요약 + 어떤 질문에 쓰면 좋을지 함께 적기
+4) 전반적인 총평 (3~4문장)
+5) 한국어 + 존댓말, 너무 포멀하지 않고 실제 취업 컨설턴트 느낌으로 작성
+"""
+            try:
+                analysis_text = call_groq(
+                    prompt,
+                    system="너는 한국 공기업/IT기업 취업을 도와주는 커리어 컨설턴트이다.",
+                    temperature=0.4,
+                )
+            except Exception as e:
+                print("[COMPANY_ANALYZE ERROR]", e, flush=True)
+                analysis_text = (
+                    "AI 분석 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
+                )
 
-전체 분량은 A4 1장 이력서의 '경험 및 역량' 섹션 정도로 맞추고,
-실제 이력서에 바로 붙여넣을 수 있을 정도로 자연스럽게 한국어 존댓말로 작성해라.
+    return render_template(
+        "company_analyze.html",
+        experiences=exps,
+        analysis_text=analysis_text,
+        target_company=target_company,
+        target_role=target_role,
+    )
+
+
+@app.route("/resume", methods=["GET", "POST"])
+def resume():
+    conn = get_db()
+    exps = conn.execute("SELECT * FROM experience").fetchall()
+
+    resume_text = None
+    target_company = None
+    target_role = None
+
+    # 회사 선택용 기본 목록 (select 옵션)
+    company_options = ["LH", "한국전력공사", "한국가스공사", "네이버", "카카오", "삼성전자", "기타"]
+
+    if request.method == "POST":
+        target_company = request.form.get("company") or ""
+        target_role = request.form.get("role") or ""
+
+        if not exps:
+            resume_text = "등록된 활동이 없어 이력서용 요약을 생성할 수 없습니다. 먼저 활동을 추가해 주세요."
+        else:
+            exp_lines = []
+            for e in exps:
+                line = f"""
+                - [{e['category']}] {e['title']}
+                  기간: {e['start_date']} ~ {e['end_date'] or ''}
+                  기술/키워드: {e['skills'] or ''}
+                  설명: {e['description'] or ''}
+                  투입 시간: {e['hours']}시간
+                """
+                exp_lines.append(line)
+
+            portfolio_text = "\n".join(exp_lines)
+
+            prompt = f"""
+아래는 한 대학생의 활동 목록이다.
+
+[학생 정보]
+- 전공: 컴퓨터공학
+- 목표 회사: {target_company}
+- 목표 직무: {target_role}
+
+[활동 목록]
+{portfolio_text}
+
+이 정보를 바탕으로,
+
+1) 이력서 상단에 넣을 수 있는 "경력 및 역량 요약" 섹션을 작성해줘.
+2) 5~7줄 정도의 문단 형태로 작성 (bullet이 아니라 문단).
+3) {target_company} / {target_role}에 적합한 키워드를 자연스럽게 녹여줘.
+4) 한국어 + 존댓말, 너무 AI티 나지 않고 실제 취업 준비생이 쓸 법한 자연스러운 표현.
 """
 
-        try:
-            completion = client.chat.completions.create(
-                model="llama-3.1-8b-instant",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "너는 한국식 이력서 작성에 익숙한 커리어 코치이다.",
-                    },
-                    {"role": "user", "content": prompt},
-                ],
-                temperature=0.4,
-            )
-            resume_text = completion.choices[0].message.content
-        except Exception as e:
-            resume_text = f"이력서 생성 중 오류가 발생했습니다: {e}"
+            try:
+                resume_text = call_groq(
+                    prompt,
+                    system="너는 이력서 요약 섹션을 잘 써주는 커리어 코치이다.",
+                    temperature=0.35,
+                )
+            except Exception as e:
+                print("[RESUME ERROR]", e, flush=True)
+                resume_text = (
+                    "AI 호출 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
+                )
 
     return render_template(
         "resume.html",
         experiences=exps,
+        resume_text=resume_text,
         target_company=target_company,
         target_role=target_role,
-        resume_text=resume_text,
-        company_options=COMPANY_OPTIONS,
+        company_options=company_options,
     )
-# =========================
-# 자동 자기소개서 생성
-# =========================
-@app.route("/cover-letter", methods=["GET", "POST"])
-def generate_cover_letter():
+
+
+@app.route("/cover_letter", methods=["GET", "POST"])
+def cover_letter():
     conn = get_db()
-    exps = conn.execute("SELECT * FROM experience ORDER BY start_date DESC").fetchall()
+    exps = conn.execute("SELECT * FROM experience").fetchall()
 
-    if not exps:
-        msg = "아직 등록된 활동이 없습니다. 활동을 몇 개 입력한 뒤 자기소개서 생성을 이용해 주세요."
-        return render_template(
-            "cover_letter.html",
-            experiences=exps,
-            target_company="",
-            target_role="",
-            cover_text=msg,
-            company_options=COMPANY_OPTIONS,
-        )
+    cl_text = None
+    target_company = None
+    target_role = None
+    question_type = None
 
-    target_company = ""
-    target_role = ""
-    cover_text = None
+    company_options = ["LH", "한국전력공사", "한국가스공사", "네이버", "카카오", "삼성전자", "기타"]
+    question_types = {
+        "motivation": "지원동기/입사 후 포부",
+        "strength": "직무 역량/강점",
+        "failure": "실패 경험 및 극복",
+        "team": "협업/갈등 해결 경험",
+    }
 
     if request.method == "POST":
-        target_company = request.form.get("company", "").strip()
-        target_role = request.form.get("role", "").strip()
+        target_company = request.form.get("company") or ""
+        target_role = request.form.get("role") or ""
+        question_type = request.form.get("question_type") or "motivation"
 
-        company_text = target_company if target_company else "특정 회사 미지정"
-        role_text = target_role if target_role else "전산/IT 관련 직무"
+        if not exps:
+            cl_text = "등록된 활동이 없어 자기소개서를 생성할 수 없습니다. 먼저 활동을 추가해 주세요."
+        else:
+            exp_lines = []
+            for e in exps:
+                line = f"""
+                - [{e['category']}] {e['title']}
+                  기간: {e['start_date']} ~ {e['end_date'] or ''}
+                  기술/키워드: {e['skills'] or ''}
+                  설명: {e['description'] or ''}
+                  투입 시간: {e['hours']}시간
+                """
+                exp_lines.append(line)
 
-        exp_lines = []
-        for e in exps:
-            line = f"""
-            - 카테고리: {e['category']}
-              제목: {e['title']}
-              기간: {e['start_date']} ~ {e['end_date'] or ''}
-              기술/키워드: {e['skills'] or ''}
-              설명: {e['description'] or ''}
-              투입 시간: {e['hours']}시간
-            """
-            exp_lines.append(line)
+            portfolio_text = "\n".join(exp_lines)
 
-        portfolio_text = "\n".join(exp_lines)
+            if question_type == "motivation":
+                guide = "지원동기와 입사 후 포부 중심으로 800~1000자 정도로 작성해줘."
+            elif question_type == "strength":
+                guide = "직무 역량과 강점을 보여줄 수 있는 경험을 중심으로 800~1000자 정도로 작성해줘."
+            elif question_type == "failure":
+                guide = "실패 경험과 그 경험을 통해 배운 점, 이후의 변화에 초점을 맞춰 800~1000자 정도로 작성해줘."
+            else:  # team
+                guide = "팀 프로젝트/협업 경험을 기반으로, 갈등 상황이나 어려움을 어떻게 해결했는지 중심으로 800~1000자 정도로 작성해줘."
 
-        prompt = f"""
-너는 한국 대학생의 자기소개서를 작성해주는 커리어 코치이다.
+            prompt = f"""
+아래는 한 대학생의 활동 목록이다.
 
-학생 전공: 컴퓨터공학
-목표 회사: {company_text}
-목표 직무: {role_text}
-
-아래는 학생의 활동 목록이다.
+[학생 정보]
+- 전공: 컴퓨터공학
+- 목표 회사: {target_company}
+- 목표 직무: {target_role}
 
 [활동 목록]
 {portfolio_text}
 
-아래 구조로 자기소개서 초안을 작성해줘:
+위 활동들을 바탕으로 {target_company} {target_role} 자기소개서 문항 중
+"{question_types.get(question_type)}" 유형에 어울리는 답변을 작성해줘.
 
-1) 성장 과정 및 성격 (5~7줄)
-2) 전공/학업 과정에서의 강점 (5~7줄)
-3) 프로젝트/대외활동/공모전 등에서의 경험 (5~7줄)
-4) 지원 동기 및 입사 후 포부 (5~7줄)
-
-각 문단은 '제목 (한 줄 요약)' + 그 아래에 본문 형식으로 작성해라.
-예: 
-[성장 과정] ~~~
-이런 형식.
-
-전체 분량은 A4 한 장 내에서 한국 공기업/IT 기업 자기소개서 느낌으로,
-부담스럽지 않으면서도 진짜 사람이 쓴 것 같은 자연스러운 존댓말로 작성해라.
+요청 조건:
+- {guide}
+- 문단 형식으로 작성 (bullet 금지)
+- 너무 격식만 가득하지 말고, 자연스럽지만 신뢰감 있는 톤
+- 회사/직무와의 연결성이 드러나게 작성
 """
 
-        try:
-            completion = client.chat.completions.create(
-                model="llama-3.1-8b-instant",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "너는 한국 공기업/IT 기업 자기소개서 작성에 익숙한 커리어 코치이다.",
-                    },
-                    {"role": "user", "content": prompt},
-                ],
-                temperature=0.5,
-            )
-            cover_text = completion.choices[0].message.content
-        except Exception as e:
-            cover_text = f"자기소개서 생성 중 오류가 발생했습니다: {e}"
+            try:
+                cl_text = call_groq(
+                    prompt,
+                    system="너는 한국 취업 자기소개서를 잘 써주는 컨설턴트이다.",
+                    temperature=0.45,
+                )
+            except Exception as e:
+                print("[COVER_LETTER ERROR]", e, flush=True)
+                cl_text = (
+                    "AI 호출 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
+                )
 
     return render_template(
         "cover_letter.html",
         experiences=exps,
+        cover_letter_text=cl_text,
         target_company=target_company,
         target_role=target_role,
-        cover_text=cover_text,
-        company_options = COMPANY_OPTIONS,
+        company_options=company_options,
+        question_types=question_types,
+        selected_question_type=question_type,
     )
 
-# =========================
-# 활동 상세 페이지
-# =========================
-@app.route("/experience/<int:exp_id>")
-def experience_detail(exp_id):
-    """활동 상세 페이지"""
-    conn = get_db()
-    exp = conn.execute(
-        "SELECT * FROM experience WHERE id = ?",
-        (exp_id,),
-    ).fetchone()
 
-    if exp is None:
-        return "해당 활동을 찾을 수 없습니다.", 404
-
-    return render_template("experience_detail.html", exp=exp, star_analysis=None)
-
-
-# =========================
-# 활동 별 AI STAR 분석
-# =========================
-@app.route("/experience/<int:exp_id>/star", methods=["POST"])
-def experience_star(exp_id):
-    """해당 활동을 AI로 STAR 형식 분석"""
-    conn = get_db()
-    exp = conn.execute(
-        "SELECT * FROM experience WHERE id = ?",
-        (exp_id,),
-    ).fetchone()
-
-    if exp is None:
-        return "해당 활동을 찾을 수 없습니다.", 404
-
-    title = exp["title"]
-    category = exp["category"]
-    desc = exp["description"] or ""
-    skills = exp["skills"] or ""
-    hours = exp["hours"] or 0
-    period = f"{exp['start_date']} ~ {exp['end_date'] or ''}"
-
-    prompt = f"""
-너는 한국 대학생의 경험을 STAR 기법으로 정리해주는 커리어 코치다.
-
-아래 활동을 STAR 형식(Situation, Task, Action, Result)으로 정리해줘.
-각 항목은 3~5줄 정도, 실제 자소서에 그대로 쓸 수 있을 정도로 자연스럽게 써라.
-마지막에는 면접에서 이 경험을 어떻게 말하면 좋을지 한 줄 팁도 적어줘.
-
-[활동 정보]
-- 제목: {title}
-- 카테고리: {category}
-- 기간: {period}
-- 설명: {desc}
-- 사용 기술/키워드: {skills}
-- 투입 시간: {hours}시간
-"""
-
-    try:
-        completion = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "너는 STAR 분석을 전문적으로 수행하는 커리어 코치다.",
-                },
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.4,
-        )
-        star_text = completion.choices[0].message.content
-
-    except Exception as e:
-        star_text = f"AI STAR 분석 중 오류가 발생했습니다: {e}"
-
-    return render_template("experience_detail.html", exp=exp, star_analysis=star_text)
-@app.route("/delete/<int:exp_id>", methods=["POST"])
-def delete_exp(exp_id):
-    with get_db() as conn:
-        conn.execute("DELETE FROM experience WHERE id = ?", (exp_id,))
-    return redirect(url_for("index"))
-
-
-# =========================
-# 엔트리 포인트
-# =========================
 if __name__ == "__main__":
     init_db()
     from os import environ
+
     app.run(host="0.0.0.0", port=int(environ.get("PORT", 5000)))
