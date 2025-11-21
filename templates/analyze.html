@@ -1,22 +1,32 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2 class="h4 mb-4">AI 포트폴리오 분석</h2>
+<h2 class="h4 mb-4 fw-bold">🔮 전체 포트폴리오 진단</h2>
 
 {% if ai_result %}
+<div class="d-flex justify-content-end mb-2">
+  <button class="btn btn-sm btn-outline-light" onclick="window.print()">🖨️ 저장하기</button>
+</div>
+
 <div class="card card-dark p-4 mb-4 border-primary border-opacity-50">
   <div class="d-flex align-items-center mb-3">
     <span class="badge bg-primary me-2">AI Insight</span>
-    <h3 class="h6 mb-0 text-white">분석 리포트</h3>
+    <h3 class="h6 mb-0 text-white">종합 분석 리포트</h3>
   </div>
   
   <div class="markdown-body small">
     {{ ai_result | safe }}
   </div>
 </div>
+
+<!-- ▼▼▼ [추가] 주의 문구 ▼▼▼ -->
+<div class="alert alert-secondary bg-dark border-secondary text-secondary small mt-3">
+  ℹ️ <strong>알림:</strong> 이 분석은 입력하신 활동 데이터를 바탕으로 생성된 AI의 의견입니다. 실제 취업 시장의 트렌드와는 차이가 있을 수 있으므로, 멘토링 자료로만 활용해 주세요.
+</div>
+
 {% else %}
 <div class="alert alert-secondary bg-transparent border-secondary text-center py-5">
-    아직 분석 결과가 없습니다. 자동으로 분석을 시작합니다.
+    아직 분석 결과가 없습니다. 자동으로 분석을 시작합니다...
 </div>
 {% endif %}
 

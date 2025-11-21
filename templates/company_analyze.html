@@ -3,6 +3,7 @@
 
 <h2 class="h4 mb-4 fw-bold">🎯 기업 맞춤 합격 분석</h2>
 
+<!-- 입력 폼 영역 -->
 <div class="card card-dark p-4 mb-5">
   <form method="post" class="row g-3 align-items-end">
     <div class="col-md-4">
@@ -26,18 +27,13 @@
   </form>
 </div>
 
-{% if error_msg %}
-<div class="alert alert-danger bg-transparent border-danger text-danger">
-  ⚠️ {{ error_msg }}
-</div>
-{% endif %}
-
+<!-- 결과 영역 -->
 {% if ai_result %}
 <div class="d-flex justify-content-end mb-2">
   <button class="btn btn-sm btn-outline-light" onclick="window.print()">🖨️ 결과 저장 (PDF)</button>
 </div>
 
-<div class="card card-dark p-4 border-primary border-opacity-50">
+<div class="card card-dark p-4 border-primary border-opacity-50 mb-4">
   <div class="mb-4 pb-3 border-bottom border-secondary border-opacity-25">
     <h3 class="h5 mb-1 text-white">Analysis Report</h3>
     <p class="small text-secondary mb-0">
@@ -46,23 +42,23 @@
     </p>
   </div>
   
+  <!-- 마크다운 렌더링 -->
   <div class="markdown-body">
     {{ ai_result | safe }}
   </div>
 </div>
-{% endif %}
 
-<div class="mt-5 pt-5 border-top border-secondary border-opacity-25">
-  <h6 class="text-secondary small text-uppercase mb-3">Reference Data</h6>
-  <div class="d-flex flex-wrap gap-2">
-  {% for exp in experiences %}
-    <span class="badge bg-dark border border-secondary text-secondary fw-normal">
-      {{ exp.title }}
-    </span>
-  {% else %}
-    <span class="text-secondary small">등록된 활동 데이터가 없습니다.</span>
-  {% endfor %}
+<!-- ▼▼▼ [추가] 면책 조항 (Disclaimer) ▼▼▼ -->
+<div class="alert alert-warning bg-opacity-10 border-warning border-opacity-25 text-warning d-flex align-items-center" role="alert">
+  <span class="fs-4 me-3">⚠️</span>
+  <div class="small">
+    <strong>AI 분석 결과는 참고용입니다.</strong><br>
+    실제 채용 공고의 우대 사항이나 인재상은 수시로 변경될 수 있습니다.<br>
+    지원 전 반드시 <a href="https://www.google.com/search?q={{ target_company }} 채용" target="_blank" class="alert-link">공식 채용 사이트</a>를 확인하시기 바랍니다.
   </div>
 </div>
+<!-- ▲▲▲ -->
+
+{% endif %}
 
 {% endblock %}

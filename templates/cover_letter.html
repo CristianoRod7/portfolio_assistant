@@ -31,7 +31,7 @@
 </div>
 
 {% if letter_text %}
-<div class="card card-dark p-4 p-lg-5 border-light border-opacity-10">
+<div class="card card-dark p-4 p-lg-5 border-light border-opacity-10 mb-3">
   <div class="d-flex justify-content-between mb-4 border-bottom border-secondary border-opacity-25 pb-2">
     <h3 class="h5 text-white">Draft Preview</h3>
     <button class="btn btn-sm btn-outline-secondary" onclick="window.print()">Save PDF</button>
@@ -40,6 +40,12 @@
   <div class="markdown-body" style="line-height: 1.8;">
     {{ letter_text | safe }}
   </div>
+</div>
+
+<!-- ▼▼▼ [추가] 주의 문구 ▼▼▼ -->
+<div class="alert alert-danger bg-opacity-10 border-danger border-opacity-25 text-danger small">
+  <strong>🛑 주의:</strong> 이 내용은 AI가 작성한 초안(Draft)입니다. <br>
+  그대로 제출하지 마시고, <strong>본인의 경험과 말투에 맞게 반드시 다듬어서</strong> 사용하세요.
 </div>
 {% endif %}
 

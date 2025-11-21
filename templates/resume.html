@@ -25,22 +25,21 @@
   </form>
 </div>
 
-{% if error_msg %}
-<div class="alert alert-danger bg-transparent border-danger text-danger">
-  {{ error_msg }}
-</div>
-{% endif %}
-
 {% if resume_text %}
 <div class="d-flex justify-content-between align-items-center mb-2">
   <span class="small text-secondary">💡 이 내용을 이력서 상단 '핵심 역량' 란에 복사해서 쓰세요.</span>
   <button type="button" class="btn btn-sm btn-outline-light" onclick="window.print()">PDF 저장</button>
 </div>
 
-<div class="card card-dark p-4 border-light border-opacity-25">
+<div class="card card-dark p-4 border-light border-opacity-25 mb-3">
   <div class="markdown-body">
     {{ resume_text | safe }}
   </div>
+</div>
+
+<!-- ▼▼▼ [추가] 주의 문구 ▼▼▼ -->
+<div class="text-end text-secondary small">
+  ⚠️ AI가 생성한 문구입니다. <strong>반드시 사실 여부를 확인하고 수정</strong>하여 사용하세요.
 </div>
 {% endif %}
 
