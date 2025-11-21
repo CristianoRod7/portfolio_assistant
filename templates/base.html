@@ -5,7 +5,7 @@
   <title>AI Portfolio | Renderer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   
-  <!-- SNS 공유용 메타 태그 (Open Graph) -->
+  <!-- SNS 공유용 메타 태그 -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://your-render-url.onrender.com/">
   <meta property="og:title" content="My AI Portfolio">
@@ -30,7 +30,7 @@
       background-image: radial-gradient(circle at 50% 0%, #2e1065 0%, transparent 50%);
       min-height: 100vh;
       display: flex;
-      flex-direction: column; /* Footer를 바닥에 붙이기 위함 */
+      flex-direction: column;
     }
     
     .card-dark {
@@ -65,6 +65,7 @@
       transform: translateY(-1px);
     }
     
+    /* 마크다운 스타일 (흰색 글씨 강제 적용) */
     .markdown-body { color: var(--text-main) !important; }
     .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 { 
       margin-top: 1.5rem; margin-bottom: 1rem; color: #fff !important; font-weight: 700;
@@ -84,7 +85,7 @@
 
     /* Footer Style */
     footer {
-      margin-top: auto; /* 내용을 밀어내고 바닥에 위치 */
+      margin-top: auto;
       padding: 3rem 0;
       border-top: 1px solid rgba(255, 255, 255, 0.1);
       background: rgba(0, 0, 0, 0.2);
@@ -109,11 +110,15 @@
     </button>
     <div class="collapse navbar-collapse" id="navMenu">
       <ul class="navbar-nav ms-auto">
+        <!-- 누구나 볼 수 있는 메뉴 -->
         <li class="nav-item"><a class="nav-link" href="{{ url_for('analyze') }}">AI 분석</a></li>
         <li class="nav-item"><a class="nav-link" href="{{ url_for('company_analyze') }}">기업 맞춤</a></li>
 
+        <!-- ▼▼▼ 로그인 상태에 따라 메뉴가 바뀜 (중요) ▼▼▼ -->
         {% if logged_in %}
           <li class="nav-item"><a class="nav-link text-info" href="{{ url_for('add') }}">활동 추가</a></li>
+          <li class="nav-item"><a class="nav-link text-warning" href="{{ url_for('settings') }}">⚙️ AI 설정</a></li>
+          
           <li class="nav-item border-start border-secondary mx-2 d-none d-lg-block"></li>
           <li class="nav-item"><a class="nav-link text-success" href="{{ url_for('backup_page') }}">💾 백업관리</a></li>
           <li class="nav-item"><a class="nav-link text-danger" href="{{ url_for('logout') }}">로그아웃</a></li>
@@ -121,6 +126,7 @@
           <li class="nav-item border-start border-secondary mx-2 d-none d-lg-block"></li>
           <li class="nav-item"><a class="nav-link text-secondary" href="{{ url_for('login') }}">관리자 로그인</a></li>
         {% endif %}
+        <!-- ▲▲▲ -->
       </ul>
     </div>
   </div>
@@ -141,7 +147,7 @@
   {% block content %}{% endblock %}
 </div>
 
-<!-- Footer 영역 수정됨 (전화 + 이메일) -->
+<!-- Footer 영역 (전화 + 이메일) -->
 <footer>
   <div class="container text-center">
     <p class="text-white fw-bold mb-1">My AI Portfolio</p>
@@ -150,13 +156,11 @@
       Copyright © 2025. All rights reserved.
     </p>
     <div class="d-flex justify-content-center gap-4 small">
-      <!-- 전화번호 (tel:) -->
       <a href="tel:010-3814-1729" class="text-secondary text-decoration-none">
-        📞 Call Me (010-3814-1729)
+        📞 010-3814-1729
       </a>
-      <!-- 이메일 (mailto:) -->
       <a href="mailto:kywksj200@naver.com" class="text-secondary text-decoration-none">
-        📧 Email Me (kywksj200@naver.com)
+        📧 kywksj200@naver.com
       </a>
     </div>
   </div>

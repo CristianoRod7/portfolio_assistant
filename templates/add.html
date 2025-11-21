@@ -10,20 +10,16 @@
     </div>
 
     <div class="card card-dark p-4 p-md-5">
-      <!-- 수정 모드일 때는 action을 edit url로, 아닐 때는 add url(기본)로 -->
-      <form method="post">
+      <form method="post" id="activityForm">
         
         <!-- 카테고리 & 제목 -->
         <div class="row g-3 mb-4">
           <div class="col-md-4">
             <label class="form-label text-secondary small">카테고리</label>
-            
-            <!-- 카테고리 추천 목록 적용 -->
             <input type="text" name="category" list="categoryOptions" 
                    class="form-control bg-dark text-white border-secondary" 
                    placeholder="선택 또는 직접 입력" 
                    value="{{ exp.category if exp else '' }}" required autocomplete="off">
-            
             <datalist id="categoryOptions">
               <option value="개인 프로젝트">
               <option value="팀 프로젝트">
@@ -37,7 +33,6 @@
               <option value="아르바이트">
             </datalist>
           </div>
-
           <div class="col-md-8">
             <label class="form-label text-secondary small">활동명 (Title)</label>
             <input type="text" name="title" class="form-control bg-dark text-white border-secondary" 
@@ -46,7 +41,7 @@
           </div>
         </div>
 
-        <!-- 설명 (핵심) -->
+        <!-- 설명 -->
         <div class="mb-4">
           <label class="form-label text-secondary small">상세 내용</label>
           <textarea name="description" rows="6" class="form-control bg-dark text-white border-secondary"
@@ -73,40 +68,46 @@
           </div>
         </div>
 
-        <!-- 기술 스택 (여기가 수정됨!) -->
-        <div class="mb-5">
-          <label class="form-label text-secondary small">사용 기술 / 키워드 (쉼표로 구분)</label>
-          <input type="text" name="skills" list="techOptions"
-                 class="form-control bg-dark text-white border-secondary" 
-                 placeholder="예) Python, React (직접 입력 또는 목록 선택)"
-                 value="{{ exp.skills if exp else '' }}" autocomplete="off">
+        <!-- ▼▼▼ 기술 스택 (멀티 태그 입력) ▼▼▼ -->
+        <div class="mb-4">
+          <label class="form-label text-secondary small">사용 기술 / 키워드</label>
           
-          <!-- 기술 스택 추천 목록 -->
+          <!-- 태그들이 표시될 공간 -->
+          <div id="tagsContainer" class="d-flex flex-wrap gap-2 mb-2"></div>
+          
+          <!-- 실제 입력을 받는 visible input -->
+          <div class="input-group">
+            <input type="text" id="skillInput" list="techOptions"
+                   class="form-control bg-dark text-white border-secondary" 
+                   placeholder="기술 입력 후 Enter 또는 추가 버튼 클릭" autocomplete="off">
+            <button class="btn btn-outline-secondary" type="button" id="addSkillBtn">추가</button>
+          </div>
+
+          <!-- 서버로 전송될 진짜 데이터 (숨겨짐) -->
+          <input type="hidden" name="skills" id="realSkillsInput" value="{{ exp.skills if exp else '' }}">
+
+          <!-- 추천 목록 -->
           <datalist id="techOptions">
-            <option value="Python">
-            <option value="Java">
-            <option value="JavaScript">
-            <option value="TypeScript">
-            <option value="React">
-            <option value="Vue.js">
-            <option value="Spring Boot">
-            <option value="Django">
-            <option value="Flask">
-            <option value="Node.js">
-            <option value="SQL">
-            <option value="NoSQL">
-            <option value="AWS">
-            <option value="Docker">
-            <option value="Git">
-            <option value="Figma">
-            <option value="Data Analysis">
-            <option value="Machine Learning">
-            <option value="C++">
-            <option value="C#">
+            <option value="Python"><option value="Java"><option value="JavaScript">
+            <option value="TypeScript"><option value="React"><option value="Vue.js">
+            <option value="Spring Boot"><option value="Django"><option value="Flask">
+            <option value="Node.js"><option value="SQL"><option value="NoSQL">
+            <option value="AWS"><option value="Docker"><option value="Git">
+            <option value="Figma"><option value="Data Analysis"><option value="Machine Learning">
+            <option value="C++"><option value="C#"><option value="Unity">
           </datalist>
           <div class="form-text text-secondary small">
-            * 목록에 없는 기술은 직접 타이핑하면 됩니다. 여러 개는 쉼표(,)로 구분하세요.
+            * 목록에서 선택하거나 직접 입력 후 <strong>Enter</strong>를 누르세요.
           </div>
+        </div>
+        <!-- ▲▲▲ -->
+
+        <!-- 증빙 링크 -->
+        <div class="mb-5">
+          <label class="form-label text-secondary small">🔗 증빙 자료 링크</label>
+          <input type="url" name="link" class="form-control bg-dark text-white border-secondary" 
+                 placeholder="https://..." 
+                 value="{{ exp.link if exp and exp.link else '' }}">
         </div>
 
         <div class="d-grid gap-2">
@@ -121,5 +122,83 @@
     </div>
   </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const skillInput = document.getElementById('skillInput');
+  const tagsContainer = document.getElementById('tagsContainer');
+  const realInput = document.getElementById('realSkillsInput');
+  const addBtn = document.getElementById('addSkillBtn');
+
+  // 초기 데이터 로드 (수정 모드일 때)
+  let skills = [];
+  if (realInput.value) {
+    // 콤마로 분리해서 배열로 만듦 (빈값 제거)
+    skills = realInput.value.split(',').map(s => s.trim()).filter(s => s);
+    renderTags();
+  }
+
+  // 태그 추가 로직
+  function addSkill() {
+    const val = skillInput.value.trim();
+    if (!val) return;
+    
+    // 중복 체크
+    if (!skills.includes(val)) {
+      skills.push(val);
+      updateRealInput();
+      renderTags();
+    }
+    skillInput.value = ''; // 입력창 비우기
+    skillInput.focus();
+  }
+
+  // 화면에 태그 그리기
+  function renderTags() {
+    tagsContainer.innerHTML = '';
+    skills.forEach((skill, index) => {
+      const tag = document.createElement('span');
+      tag.className = 'badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 py-2 px-3 rounded-pill d-flex align-items-center';
+      tag.innerHTML = `
+        ${skill}
+        <span class="ms-2 cursor-pointer text-white-50 hover-white" onclick="removeSkill(${index})" style="cursor:pointer;">&times;</span>
+      `;
+      tagsContainer.appendChild(tag);
+    });
+  }
+
+  // 태그 삭제 (전역 함수로 등록해야 onclick에서 찾음)
+  window.removeSkill = function(index) {
+    skills.splice(index, 1);
+    updateRealInput();
+    renderTags();
+  };
+
+  // 숨겨진 input 업데이트 (DB 전송용)
+  function updateRealInput() {
+    realInput.value = skills.join(', ');
+  }
+
+  // 이벤트 리스너: 엔터키
+  skillInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault(); // 폼 제출 방지
+      addSkill();
+    }
+  });
+
+  // 이벤트 리스너: 추가 버튼
+  addBtn.addEventListener('click', addSkill);
+  
+  // 이벤트 리스너: datalist 선택 시 (input 이벤트 활용)
+  // 사용자가 목록에서 클릭하면 바로 추가되게 하려면 아래 주석 해제
+  /*
+  skillInput.addEventListener('input', function(e) {
+     // datalist 옵션 중에 현재 입력값과 일치하는 게 있으면 자동 추가? 
+     // (UX 호불호가 있어서 일단 Enter 치는 방식으로 통일함)
+  });
+  */
+});
+</script>
 
 {% endblock %}

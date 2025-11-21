@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    
+    <div class="d-flex align-items-center mb-4">
+      <h2 class="h4 mb-0 fw-bold">🤖 AI 페르소나 & 내 정보 설정</h2>
+    </div>
+
+    <div class="card card-dark p-4 p-md-5 mb-4 border-info border-opacity-25">
+      <div class="d-flex align-items-start mb-4">
+        <span class="fs-1 me-3">🧠</span>
+        <div>
+          <h5 class="text-white fw-bold mb-1">AI 학습시키기</h5>
+          <p class="text-secondary small mb-0">
+            여기에 입력한 정보는 모든 AI 분석, 이력서, 자소서 생성 시 기본 지식으로 활용됩니다.<br>
+            본인의 스타일, 강점, 목표를 자세히 적을수록 결과가 좋아집니다.
+          </p>
+        </div>
+      </div>
+
+      <form method="post">
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label class="form-label text-info small">이름 (또는 닉네임)</label>
+            <input type="text" name="name" class="form-control bg-dark text-white border-secondary" 
+                   value="{{ profile.name or '' }}" placeholder="예) 홍길동">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-info small">전공 / 주특기</label>
+            <input type="text" name="major" class="form-control bg-dark text-white border-secondary" 
+                   value="{{ profile.major or '' }}" placeholder="예) 컴퓨터공학, 백엔드 개발">
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label text-info small">커리어 목표 (Career Goal)</label>
+          <input type="text" name="career_goal" class="form-control bg-dark text-white border-secondary" 
+                 value="{{ profile.career_goal or '' }}" placeholder="예) 핀테크 기업 서버 개발자, 사용자 경험을 중시하는 PM">
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label text-info small">나의 핵심 강점 & 성격 (Strengths)</label>
+          <textarea name="strengths" rows="3" class="form-control bg-dark text-white border-secondary"
+                    placeholder="예) 꼼꼼한 성격, 새로운 기술 습득이 빠름, 리더십 경험 다수">{{ profile.strengths or '' }}</textarea>
+        </div>
+
+        <div class="mb-5">
+          <label class="form-label text-warning small fw-bold">✨ AI에게 내리는 지시사항 (Instruction)</label>
+          <textarea name="ai_instructions" rows="4" class="form-control bg-dark text-white border-warning border-opacity-50"
+                    placeholder="예) '항상 두괄식으로 작성해줘', '너무 겸손하기보다는 자신감 있는 어조로 써줘', '수치적인 성과를 강조해줘'">{{ profile.ai_instructions or '' }}</textarea>
+          <div class="form-text text-secondary small">
+            * AI가 글을 쓸 때 어떤 말투나 태도를 취해야 할지 명령을 내리세요.
+          </div>
+        </div>
+
+        <div class="d-grid">
+          <button type="submit" class="btn btn-info fw-bold py-3">
+            설정 저장하기
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

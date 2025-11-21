@@ -15,12 +15,37 @@
         {% endfor %}
       </select>
     </div>
+    
+    <!-- 직무 선택 (수정됨) -->
     <div class="col-md-6">
       <label class="form-label text-secondary small">지원 직무 (Position)</label>
-      <input type="text" name="role" class="form-control bg-dark text-white border-secondary"
-             placeholder="예) 백엔드 개발자, 서비스 기획"
-             value="{{ target_role or '' }}">
+      <input type="text" name="role" list="roleOptions" 
+             class="form-control bg-dark text-white border-secondary"
+             placeholder="직무를 선택하거나 직접 입력하세요"
+             value="{{ target_role or '' }}" autocomplete="off">
+      
+      <!-- 주요 IT 직무 리스트 -->
+      <datalist id="roleOptions">
+        <!-- 개발 직군 -->
+        <option value="백엔드 개발자 (Backend Developer)">
+        <option value="프론트엔드 개발자 (Frontend Developer)">
+        <option value="풀스택 개발자 (Full Stack Developer)">
+        <option value="모바일 앱 개발자 (Android/iOS)">
+        <option value="데이터 엔지니어 (Data Engineer)">
+        <option value="데이터 분석가 (Data Analyst)">
+        <option value="인공지능/머신러닝 엔지니어 (AI/ML)">
+        <option value="DevOps/SRE 엔지니어">
+        <option value="보안 엔지니어 (Security)">
+        <option value="임베디드 소프트웨어 개발자">
+        <!-- 공기업/대기업 공통 -->
+        <option value="SW 개발 / 전산직">
+        <option value="ICT / 정보보호">
+        <option value="IT 서비스 기획 (PM/PO)">
+        <option value="R&D (연구개발)">
+        <option value="시스템 엔지니어 (System Engineer)">
+      </datalist>
     </div>
+
     <div class="col-md-2">
       <button type="submit" class="btn btn-ai w-100">분석 시작</button>
     </div>
@@ -48,7 +73,7 @@
   </div>
 </div>
 
-<!-- ▼▼▼ [추가] 면책 조항 (Disclaimer) ▼▼▼ -->
+<!-- 면책 조항 -->
 <div class="alert alert-warning bg-opacity-10 border-warning border-opacity-25 text-warning d-flex align-items-center" role="alert">
   <span class="fs-4 me-3">⚠️</span>
   <div class="small">
@@ -57,7 +82,6 @@
     지원 전 반드시 <a href="https://www.google.com/search?q={{ target_company }} 채용" target="_blank" class="alert-link">공식 채용 사이트</a>를 확인하시기 바랍니다.
   </div>
 </div>
-<!-- ▲▲▲ -->
 
 {% endif %}
 

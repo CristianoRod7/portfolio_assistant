@@ -26,7 +26,7 @@ from groq import Groq
 # =========================
 
 app = Flask(__name__)
-# 세션 보안 키
+# 세션 보안 키 (Render 환경변수에 SECRET_KEY 등록 권장)
 app.secret_key = os.environ.get("SECRET_KEY", "dev_secret_key_12345")
 
 # Groq 클라이언트
@@ -58,7 +58,7 @@ def init_db():
         if not conn: return
 
         cur = conn.cursor()
-        # 1. 기본 테이블
+        # 1. 경험 테이블 생성
         cur.execute("""
             CREATE TABLE IF NOT EXISTS experience (
                 id SERIAL PRIMARY KEY,
@@ -73,7 +73,7 @@ def init_db():
             );
         """)
         
-        # 2. link 컬럼 추가 마이그레이션
+        # 2. link 컬럼 마이그레이션 (없으면 추가)
         cur.execute("""
             DO $$ 
             BEGIN 
@@ -83,6 +83,20 @@ def init_db():
                 END IF; 
             END $$;
         """)
+
+        # 3. 프로필(AI 설정) 테이블 생성
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS profile (
+                id INTEGER PRIMARY KEY, 
+                name VARCHAR(100),
+                major VARCHAR(100),
+                career_goal TEXT,
+                strengths TEXT,
+                ai_instructions TEXT
+            );
+        """)
+        # 기본 행 생성 (ID=1)
+        cur.execute("INSERT INTO profile (id) VALUES (1) ON CONFLICT (id) DO NOTHING;")
         
         conn.commit()
         cur.close()
@@ -109,6 +123,16 @@ def fetch_all_experiences(order_by_recent=True):
     finally:
         cur.close()
         conn.close()
+
+def get_profile():
+    """사용자 프로필 정보 가져오기"""
+    conn = get_db_connection()
+    if not conn: return {}
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM profile WHERE id = 1")
+    row = cur.fetchone()
+    cur.close(); conn.close()
+    return dict(row) if row else {}
 
 def build_portfolio_text(exps):
     lines = []
@@ -139,7 +163,7 @@ def inject_user():
     return dict(logged_in=session.get('logged_in'))
 
 # =========================
-# 보안 (로그인 체크 데코레이터)
+# 보안 (로그인 체크)
 # =========================
 
 def login_required(f):
@@ -239,7 +263,6 @@ def index():
             exp['status_color'] = 'warning'
         processed_exps.append(exp)
 
-    # logged_in은 context_processor가 자동으로 넣어주므로 여기서 뺌
     return render_template(
         "index.html",
         experiences=processed_exps,
@@ -346,67 +369,195 @@ def experience_detail(exp_id):
     return render_template("experience_detail.html", exp=exp)
 
 # =========================
-# AI 분석 및 기타 페이지
+# 설정 (학습) 라우트
+# =========================
+@app.route("/settings", methods=["GET", "POST"])
+@login_required
+def settings():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    if request.method == "POST":
+        cur.execute("""
+            UPDATE profile 
+            SET name=%s, major=%s, career_goal=%s, strengths=%s, ai_instructions=%s
+            WHERE id=1
+        """, (
+            request.form.get("name"), request.form.get("major"), 
+            request.form.get("career_goal"), request.form.get("strengths"),
+            request.form.get("ai_instructions")
+        ))
+        conn.commit()
+        flash("AI 설정이 저장되었습니다!", "success")
+        
+    cur.execute("SELECT * FROM profile WHERE id=1")
+    profile = cur.fetchone()
+    cur.close(); conn.close()
+    return render_template("settings.html", profile=profile or {})
+
+# =========================
+# AI 분석 (프로필 반영)
 # =========================
 
 @app.route("/analyze")
 def analyze():
     exps = fetch_all_experiences(order_by_recent=False)
+    profile = get_profile() # 프로필 가져오기
+    
     if not exps:
         return render_template("analyze.html", experiences=[], ai_result="<p>활동을 먼저 등록해주세요.</p>")
+    
     portfolio_text = build_portfolio_text(exps)
-    prompt = f"[학생 정보] 전공: 컴퓨터공학 / 희망: IT기업\n[활동 목록]\n{portfolio_text}\n\n위 활동을 바탕으로 다음 내용을 마크다운으로 분석해줘:\n1. **핵심 요약** (3줄 이내)\n2. **발견된 강점 3가지**\n3. **보완이 필요한 점**\n4. **추천 액션 아이템**"
-    ai_result = call_groq(prompt, "너는 IT 커리어 코치다.")
+    
+    user_context = f"""
+    [사용자 프로필]
+    이름: {profile.get('name', '학생')}
+    전공: {profile.get('major', '미입력')}
+    커리어 목표: {profile.get('career_goal', '미입력')}
+    나의 강점/성격: {profile.get('strengths', '미입력')}
+    
+    [AI 페르소나/요청사항 (이대로 행동해)]:
+    {profile.get('ai_instructions', '친절하고 전문적인 톤으로 분석해줘.')}
+    """
+    
+    prompt = f"{user_context}\n\n[활동 목록]\n{portfolio_text}\n\n위 정보를 바탕으로 종합적인 포트폴리오 분석을 해줘. (마크다운 형식)"
+    ai_result = call_groq(prompt, "너는 사용자의 정보를 완벽히 숙지한 전담 커리어 코치다.")
+    
     return render_template("analyze.html", experiences=exps, ai_result=ai_result)
 
 @app.route("/company-analyze", methods=["GET", "POST"])
 def company_analyze():
     exps = fetch_all_experiences()
     ai_result = None
-    target_company = None; target_role = None
+    target_company = None
+    target_role = None
+    profile = get_profile()
+    
     if request.method == "POST":
-        target_company = request.form.get("company"); target_role = request.form.get("role")
+        target_company = request.form.get("company")
+        target_role = request.form.get("role")
         portfolio_text = build_portfolio_text(exps)
-        prompt = f"목표 회사: {target_company}\n목표 직무: {target_role}\n[내 활동]\n{portfolio_text}\n\n{target_company}의 {target_role} 채용 담당자 관점에서 마크다운으로 분석해:\n1. **직무 적합도 점수**\n2. **핵심 강점**\n3. **예상 면접 질문 3가지**"
-        ai_result = call_groq(prompt, "너는 대기업 채용 담당자다.")
+        
+        user_context = f"""
+        사용자 이름: {profile.get('name', '학생')}
+        전공: {profile.get('major', '관련 전공')}
+        사용자가 강조하고 싶은 점: {profile.get('strengths', '')}
+        """
+        
+        prompt = f"목표 회사: {target_company}\n목표 직무: {target_role}\n{user_context}\n[내 활동]\n{portfolio_text}\n\n{target_company}의 {target_role} 채용 담당자 관점에서 합격 가능성과 전략을 분석해줘."
+        ai_result = call_groq(prompt, "너는 대기업 인사담당자다.")
+
     return render_template("company_analyze.html", company_options=COMPANY_OPTIONS, ai_result=ai_result, target_company=target_company, target_role=target_role)
 
 @app.route("/resume", methods=["GET", "POST"])
 def resume():
     exps = fetch_all_experiences(order_by_recent=False)
-    resume_text = None; target_company = None; target_role = None
+    resume_text = None
+    target_company = None
+    target_role = None
+    profile = get_profile()
+    
     if request.method == "POST":
-        target_company = request.form.get("company") or ""; target_role = request.form.get("role") or ""
+        target_company = request.form.get("company") or ""
+        target_role = request.form.get("role") or ""
         portfolio_text = build_portfolio_text(exps)
-        prompt = f"[학생 정보] 전공: 컴퓨터공학\n목표 회사: {target_company}\n목표 직무: {target_role}\n[활동 목록]\n{portfolio_text}\n\n이력서 상단 '핵심 역량 요약'을 마크다운으로 작성해줘.\n1. **강조할 핵심 역량 3가지**\n2. **주요 성과 요약**\n3. **{target_company} 맞춤 한 줄 어필**"
-        resume_text = call_groq(prompt, "너는 이력서 컨설턴트다.")
-    return render_template("resume.html", experiences=exps, resume_text=resume_text, company_options=COMPANY_OPTIONS, target_company=target_company, target_role=target_role)
+        
+        prompt = f"""
+        [프로필]
+        이름: {profile.get('name', 'OOO')}
+        전공: {profile.get('major', '')}
+        목표: {profile.get('career_goal', '')}
+        
+        [요청사항]
+        {profile.get('ai_instructions', '깔끔한 문체로 작성해줘.')}
+        
+        [활동 목록]
+        {portfolio_text}
+        
+        위 내용을 바탕으로 {target_company} {target_role} 지원용 이력서의 '핵심 역량 요약' 파트를 작성해줘.
+        """
+        resume_text = call_groq(prompt, "너는 이력서 전문 에디터다.")
+
+    return render_template(
+        "resume.html",
+        experiences=exps,
+        resume_text=resume_text,
+        company_options=COMPANY_OPTIONS,
+        target_company=target_company,
+        target_role=target_role,
+    )
 
 @app.route("/cover-letter", methods=["GET", "POST"])
 def cover_letter():
     exps = fetch_all_experiences(order_by_recent=False)
-    letter_text = None; target_company = None; target_role = None
+    letter_text = None
+    target_company = None
+    target_role = None
+    profile = get_profile()
+    
     if request.method == "POST":
-        target_company = request.form.get("company") or ""; target_role = request.form.get("role") or ""; extra_request = request.form.get("extra_request", "").strip()
+        target_company = request.form.get("company") or ""
+        target_role = request.form.get("role") or ""
+        extra_request = request.form.get("extra_request", "").strip()
+        
         portfolio_text = build_portfolio_text(exps)
-        prompt = f"지원 회사: {target_company}\n지원 직무: {target_role}\n추가 요청: {extra_request}\n[활동 목록]\n{portfolio_text}\n\n자기소개서 초안을 마크다운으로 작성해줘."
-        letter_text = call_groq(prompt, "너는 자소서 전문 작가다.")
-    return render_template("cover_letter.html", experiences=exps, letter_text=letter_text, company_options=COMPANY_OPTIONS, target_company=target_company, target_role=target_role)
+        
+        prompt = f"""
+        [지원자 정보]
+        이름: {profile.get('name', 'OOO')}
+        전공: {profile.get('major', '')}
+        나의 강점: {profile.get('strengths', '')}
+        
+        [AI 지침]
+        {profile.get('ai_instructions', '')}
+        
+        [활동 데이터]
+        {portfolio_text}
+        
+        지원 회사: {target_company} / 직무: {target_role}
+        추가 요청: {extra_request}
+        
+        위 정보를 종합하여 자기소개서 초안을 작성해줘.
+        """
+        letter_text = call_groq(prompt, "너는 자소서 작가다.")
+
+    return render_template(
+        "cover_letter.html",
+        experiences=exps,
+        letter_text=letter_text,
+        company_options=COMPANY_OPTIONS,
+        target_company=target_company,
+        target_role=target_role,
+    )
+
+# =========================
+# 엑셀 백업
+# =========================
 
 @app.route("/backup", methods=["GET", "POST"])
 @login_required
-def backup_page(): return render_template("backup.html")
+def backup_page():
+    return render_template("backup.html")
 
 @app.route("/api/export")
 @login_required
 def export_data():
     exps = fetch_all_experiences(order_by_recent=False)
-    output = io.StringIO(); writer = csv.writer(output)
+    output = io.StringIO()
+    writer = csv.writer(output)
     writer.writerow(['id', '카테고리', '제목', '설명', '시작일', '종료일', '기술스택', '투입시간', '링크', '생성일'])
     for row in exps:
-        writer.writerow([row['id'], row['category'], row['title'], row['description'], row['start_date'], row['end_date'], row['skills'], row['hours'], row.get('link', ''), row['created_at']])
+        writer.writerow([
+            row['id'], row['category'], row['title'], row['description'],
+            row['start_date'], row['end_date'], row['skills'],
+            row['hours'], row.get('link', ''), row['created_at']
+        ])
     output.seek(0)
-    return Response(output.getvalue().encode("utf-8-sig"), mimetype="text/csv", headers={"Content-Disposition": f"attachment;filename=my_portfolio_backup.csv"})
+    return Response(
+        output.getvalue().encode("utf-8-sig"),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment;filename=my_portfolio_backup.csv"}
+    )
 
 @app.route("/api/import", methods=["POST"])
 @login_required
@@ -414,19 +565,37 @@ def import_data():
     if 'file' not in request.files: return "파일 없음", 400
     file = request.files['file']
     if file.filename == '': return "파일 선택 안함", 400
+
     try:
-        stream = io.TextIOWrapper(file.stream, encoding='utf-8-sig'); csv_input = csv.DictReader(stream); conn = get_db_connection(); cur = conn.cursor()
+        stream = io.TextIOWrapper(file.stream, encoding='utf-8-sig')
+        csv_input = csv.DictReader(stream)
+        conn = get_db_connection()
+        cur = conn.cursor()
         for row in csv_input:
-            cur.execute("""
+            cur.execute(
+                """
                 INSERT INTO experience (category, title, description, start_date, end_date, skills, hours, link, created_at)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """, (row.get('카테고리'), row.get('제목'), row.get('설명'), row.get('시작일'), row.get('종료일') or None, row.get('기술스택'), row.get('투입시간'), row.get('링크', ''), row.get('생성일')))
-        conn.commit(); cur.close(); conn.close()
-        flash("데이터가 성공적으로 복구되었습니다.", "success"); return redirect(url_for('index'))
-    except Exception as e: return f"복구 실패: {str(e)}", 500
+                """,
+                (
+                    row.get('카테고리'), row.get('제목'), row.get('설명'),
+                    row.get('시작일'), row.get('종료일') or None,
+                    row.get('기술스택'), row.get('투입시간'), row.get('링크', ''), row.get('생성일')
+                )
+            )
+        conn.commit()
+        cur.close()
+        conn.close()
+        flash("데이터가 성공적으로 복구되었습니다.", "success")
+        return redirect(url_for('index'))
+    except Exception as e:
+        return f"복구 실패: {str(e)}", 500
 
 if __name__ == "__main__":
-    try: init_db()
-    except Exception as e: print(f"⚠️ DB Init Failed: {e}")
+    try:
+        init_db()
+    except Exception as e:
+        print(f"⚠️ DB Init Failed: {e}")
+
     from os import environ
     app.run(host="0.0.0.0", port=int(environ.get("PORT", 5000)), debug=True)
