@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    
+    <div class="d-flex align-items-center mb-4">
+      <h2 class="h4 mb-0 fw-bold">💾 데이터 백업 및 복구</h2>
+    </div>
+    
+    <!-- 안내 문구 -->
+    <div class="alert alert-warning border-warning bg-warning bg-opacity-10 text-warning-emphasis mb-4">
+      <strong>💡 안전한 보관을 위해:</strong><br>
+      데이터베이스가 안전하게 연결되어 있지만, 혹시 모를 상황을 대비해 
+      중요한 데이터를 업데이트한 후에는 <strong>엑셀 파일로 다운로드</strong>해두는 것을 권장합니다.
+    </div>
+
+    <div class="row g-4">
+      <!-- 1. 내보내기 (다운로드) -->
+      <div class="col-md-6">
+        <div class="card card-dark p-4 h-100 text-center border-success border-opacity-25">
+          <div class="fs-1 mb-3">📊</div>
+          <h5 class="text-white fw-bold">엑셀로 저장하기 (Export)</h5>
+          <p class="text-secondary small mb-4">
+            현재 등록된 모든 활동 데이터를<br>
+            CSV(엑셀) 파일로 다운로드합니다.
+          </p>
+          <a href="{{ url_for('export_data') }}" class="btn btn-success w-100 py-2 fw-bold">
+            📥 백업 파일 다운로드
+          </a>
+        </div>
+      </div>
+
+      <!-- 2. 가져오기 (복구) -->
+      <div class="col-md-6">
+        <div class="card card-dark p-4 h-100 text-center border-primary border-opacity-25">
+          <div class="fs-1 mb-3">♻️</div>
+          <h5 class="text-white fw-bold">데이터 복구하기 (Import)</h5>
+          <p class="text-secondary small mb-4">
+            기존에 저장해둔 백업 파일(.csv)을<br>
+            업로드하여 데이터를 복원합니다.
+          </p>
+          
+          <form action="{{ url_for('import_data') }}" method="post" enctype="multipart/form-data">
+            <div class="input-group mb-3">
+              <input type="file" name="file" class="form-control bg-dark text-secondary border-secondary form-control-sm" accept=".csv" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
+              📤 데이터 복원 시작
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-5 text-end">
+      <a href="{{ url_for('index') }}" class="text-secondary text-decoration-none small">
+        ← 메인 대시보드로 돌아가기
+      </a>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
