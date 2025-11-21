@@ -2,8 +2,8 @@ import os
 import sqlite3
 from datetime import datetime
 import markdown # 마크다운 변환 라이브러리 추가
-pi_key = os.getenv("GROQ_API_KEY")
-print(f"👉 현재 로드된 키 상태: {api_key[:5] if api_key else 'None'} (길이: {len(api_key) if api_key else 0})")
+
+
 # ▲▲▲
 from flask import (
     Flask,
