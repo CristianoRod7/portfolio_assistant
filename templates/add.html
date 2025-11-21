@@ -6,19 +6,23 @@
     
     <div class="d-flex align-items-center mb-4">
       <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-secondary me-3">← 뒤로</a>
-      <h2 class="h4 mb-0 fw-bold">새 활동 추가</h2>
+      <h2 class="h4 mb-0 fw-bold">{% if is_edit %}활동 수정{% else %}새 활동 추가{% endif %}</h2>
     </div>
 
     <div class="card card-dark p-4 p-md-5">
+      <!-- 수정 모드일 때는 action을 edit url로, 아닐 때는 add url(기본)로 -->
       <form method="post">
         
+        <!-- 카테고리 & 제목 -->
         <div class="row g-3 mb-4">
           <div class="col-md-4">
             <label class="form-label text-secondary small">카테고리</label>
             
+            <!-- 카테고리 추천 목록 적용 -->
             <input type="text" name="category" list="categoryOptions" 
                    class="form-control bg-dark text-white border-secondary" 
-                   placeholder="선택 또는 직접 입력" required autocomplete="off">
+                   placeholder="선택 또는 직접 입력" 
+                   value="{{ exp.category if exp else '' }}" required autocomplete="off">
             
             <datalist id="categoryOptions">
               <option value="개인 프로젝트">
@@ -37,40 +41,81 @@
           <div class="col-md-8">
             <label class="form-label text-secondary small">활동명 (Title)</label>
             <input type="text" name="title" class="form-control bg-dark text-white border-secondary" 
-                   placeholder="활동 이름을 입력하세요" required>
+                   placeholder="활동 이름을 입력하세요" 
+                   value="{{ exp.title if exp else '' }}" required>
           </div>
         </div>
 
+        <!-- 설명 (핵심) -->
         <div class="mb-4">
           <label class="form-label text-secondary small">상세 내용</label>
           <textarea name="description" rows="6" class="form-control bg-dark text-white border-secondary"
-                    placeholder="구체적으로 어떤 역할을 맡았고, 어떤 성과를 냈나요? (AI 분석의 핵심이 됩니다)"></textarea>
+                    placeholder="구체적으로 어떤 역할을 맡았고, 어떤 성과를 냈나요? (AI 분석의 핵심이 됩니다)">{{ exp.description if exp else '' }}</textarea>
         </div>
 
+        <!-- 날짜 & 시간 -->
         <div class="row g-3 mb-4">
           <div class="col-md-4">
             <label class="form-label text-secondary small">시작일</label>
-            <input type="date" name="start_date" class="form-control bg-dark text-white border-secondary" required>
+            <input type="date" name="start_date" class="form-control bg-dark text-white border-secondary" 
+                   value="{{ exp.start_date if exp else '' }}" required>
           </div>
           <div class="col-md-4">
             <label class="form-label text-secondary small">종료일 (진행 중이면 비움)</label>
-            <input type="date" name="end_date" class="form-control bg-dark text-white border-secondary">
+            <input type="date" name="end_date" class="form-control bg-dark text-white border-secondary"
+                   value="{{ exp.end_date if exp else '' }}">
           </div>
           <div class="col-md-4">
             <label class="form-label text-secondary small">투입 시간 (Hours)</label>
             <input type="number" name="hours" class="form-control bg-dark text-white border-secondary" 
-                   placeholder="0" min="0">
+                   placeholder="0" min="0" 
+                   value="{{ exp.hours if exp else '' }}">
           </div>
         </div>
 
+        <!-- 기술 스택 (여기가 수정됨!) -->
         <div class="mb-5">
-          <label class="form-label text-secondary small">사용 기술 / 키워드</label>
-          <input type="text" name="skills" class="form-control bg-dark text-white border-secondary" 
-                 placeholder="예) Python, Figma, 리더십, 데이터 분석">
+          <label class="form-label text-secondary small">사용 기술 / 키워드 (쉼표로 구분)</label>
+          <input type="text" name="skills" list="techOptions"
+                 class="form-control bg-dark text-white border-secondary" 
+                 placeholder="예) Python, React (직접 입력 또는 목록 선택)"
+                 value="{{ exp.skills if exp else '' }}" autocomplete="off">
+          
+          <!-- 기술 스택 추천 목록 -->
+          <datalist id="techOptions">
+            <option value="Python">
+            <option value="Java">
+            <option value="JavaScript">
+            <option value="TypeScript">
+            <option value="React">
+            <option value="Vue.js">
+            <option value="Spring Boot">
+            <option value="Django">
+            <option value="Flask">
+            <option value="Node.js">
+            <option value="SQL">
+            <option value="NoSQL">
+            <option value="AWS">
+            <option value="Docker">
+            <option value="Git">
+            <option value="Figma">
+            <option value="Data Analysis">
+            <option value="Machine Learning">
+            <option value="C++">
+            <option value="C#">
+          </datalist>
+          <div class="form-text text-secondary small">
+            * 목록에 없는 기술은 직접 타이핑하면 됩니다. 여러 개는 쉼표(,)로 구분하세요.
+          </div>
         </div>
 
-        <div class="d-grid">
-          <button type="submit" class="btn btn-ai py-3 fw-bold">이 내용 저장하기</button>
+        <div class="d-grid gap-2">
+          <button type="submit" class="btn btn-ai py-3 fw-bold">
+            {% if is_edit %}수정 완료{% else %}활동 저장하기{% endif %}
+          </button>
+          {% if is_edit %}
+            <a href="{{ url_for('experience_detail', exp_id=exp.id) }}" class="btn btn-outline-secondary">취소</a>
+          {% endif %}
         </div>
       </form>
     </div>
