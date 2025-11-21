@@ -92,7 +92,7 @@
     }
     footer a:hover { color: #fff !important; text-decoration: underline !important; }
     
-    /* 모달 텍스트 줄바꿈 개선 */
+    /* 모달 줄바꿈 개선 */
     .keep-all { word-break: keep-all; }
   </style>
 </head>
@@ -165,7 +165,7 @@
   </div>
 </footer>
 
-<!-- ▼▼▼ [수정됨] 사용 가이드 모달 (내용 보강 + 줄바꿈 교정) ▼▼▼ -->
+<!-- ▼▼▼ 사용 가이드 모달 (자동 실행 + 오늘 하루 안보기) ▼▼▼ -->
 <div class="modal fade" id="helpModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content card-dark border-secondary">
@@ -175,7 +175,6 @@
       </div>
       <div class="modal-body text-secondary">
         <div class="row g-4">
-          <!-- 섹션 1 -->
           <div class="col-md-6">
             <h6 class="text-info fw-bold mb-2">🔐 1. 관리자 로그인 (필수)</h6>
             <p class="small keep-all lh-base">
@@ -183,15 +182,13 @@
               로그인을 해야만 활동을 추가하거나 수정할 수 있으며, 비로그인 상태에서는 포트폴리오 조회만 가능합니다.
             </p>
           </div>
-          <!-- 섹션 2 -->
           <div class="col-md-6">
             <h6 class="text-info fw-bold mb-2">📝 2. 활동 기록 및 관리</h6>
             <p class="small keep-all lh-base">
-              <strong>[새활동 추가]</strong> 버튼을 클릭해 프로젝트, 인턴, 수상 경력 등을 상세히 기록하세요. 
+              <strong>[활동 추가]</strong> 메뉴에서 프로젝트, 인턴, 수상 경력 등을 상세히 기록하세요. 
               기술 스택은 태그 방식으로 여러 개 입력 가능하며, 깃허브나 노션 등 증빙 링크를 첨부하면 신뢰도가 높아집니다.
             </p>
           </div>
-          <!-- 섹션 3 -->
           <div class="col-md-6">
             <h6 class="text-warning fw-bold mb-2">🧠 3. AI 학습 및 페르소나 설정</h6>
             <p class="small keep-all lh-base">
@@ -199,7 +196,6 @@
               "자신감 있게 써줘", "수치를 강조해줘" 같은 구체적인 지시를 내리면 AI가 그에 맞춰 글을 작성합니다.
             </p>
           </div>
-          <!-- 섹션 4 -->
           <div class="col-md-6">
             <h6 class="text-success fw-bold mb-2">🚀 4. 취업용 AI 도구 활용</h6>
             <p class="small keep-all lh-base">
@@ -213,7 +209,15 @@
           💡 <strong>Tip:</strong> 데이터는 안전한 클라우드 DB에 저장되지만, 중요한 정보는 <strong>[💾 백업]</strong> 메뉴에서 엑셀 파일로 다운로드해 두는 것을 권장합니다.
         </p>
       </div>
-      <div class="modal-footer border-secondary">
+      
+      <!-- 모달 하단: 오늘 하루 보지 않기 + 닫기 -->
+      <div class="modal-footer border-secondary justify-content-between">
+        <div class="form-check">
+          <input class="form-check-input bg-dark border-secondary" type="checkbox" id="dontShowToday">
+          <label class="form-check-label text-secondary small" for="dontShowToday">
+            오늘 하루 보지 않기
+          </label>
+        </div>
         <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">닫기</button>
       </div>
     </div>
@@ -223,10 +227,46 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  document.querySelectorAll('form').forEach(form => {
-    form.addEventListener('submit', () => {
+  document.addEventListener("DOMContentLoaded", function() {
+    // 1. 로딩 오버레이 로직
+    document.querySelectorAll('form').forEach(form => {
       if(!form.action.includes('login') && !form.enctype.includes('multipart')) {
           document.getElementById('loading-overlay').style.display = 'flex';
+      }
+    });
+
+    // 2. 모달 자동 표시 로직
+    const helpModalEl = document.getElementById('helpModal');
+    const helpModal = new bootstrap.Modal(helpModalEl);
+    const dontShowCheckbox = document.getElementById('dontShowToday');
+
+    // 쿠키 가져오기 함수
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    // 쿠키 설정 함수
+    function setCookie(name, value, days) {
+      let expires = "";
+      if (days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = "; expires=" + date.toUTCString();
+      }
+      document.cookie = name + "=" + (value || "") + expires + "; path=/";
+    }
+
+    // 'hideHelpModal' 쿠키가 없으면 모달 띄우기
+    if (!getCookie('hideHelpModal')) {
+      helpModal.show();
+    }
+
+    // 모달 닫힐 때 체크박스 확인하여 쿠키 설정
+    helpModalEl.addEventListener('hide.bs.modal', function () {
+      if (dontShowCheckbox.checked) {
+        setCookie('hideHelpModal', 'true', 1); // 1일 동안 숨김
       }
     });
   });
