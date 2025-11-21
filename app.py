@@ -32,12 +32,17 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev_secret_key_12345")
 # Groq 클라이언트
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
+# [자동완성용 기업 목록] - 진로 탐색 및 분석에서 사용
 COMPANY_OPTIONS = [
-    "LH", "한국전력공사", "한국중부발전", "한국도로공사",
-    "한국수력원자력", "네이버", "카카오", "삼성전자", "SK텔레콤"
+    "LH(한국토지주택공사)", "한국전력공사", "한국중부발전", "한국도로공사",
+    "한국수력원자력", "국민건강보험공단", "근로복지공단", 
+    "네이버", "카카오", "삼성전자", "SK텔레콤", "LG전자", "현대자동차",
+    "쿠팡", "우아한형제들(배달의민족)", "토스(비바리퍼블리카)",
+    "충청남도청", "대전광역시청", "지역 소방서", "지역 경찰서",
+    "구글코리아", "넷플릭스서비시스코리아", "한국철도공사(코레일)"
 ]
 
-# [이미지 기반 학과 목록 데이터]
+# [학과 목록 데이터] - 진로 탐색에서 사용
 MAJORS = {
     "공학계열": [
         "건설안전방재학과", "환경에너지학과", "소방안전관리학과", 
@@ -83,22 +88,12 @@ def init_db():
                 end_date VARCHAR(20),
                 skills TEXT,
                 hours INTEGER DEFAULT 0,
+                link TEXT,
                 created_at VARCHAR(50)
             );
         """)
         
-        # 2. link 컬럼 마이그레이션 (없으면 추가)
-        cur.execute("""
-            DO $$ 
-            BEGIN 
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                               WHERE table_name='experience' AND column_name='link') THEN 
-                    ALTER TABLE experience ADD COLUMN link TEXT; 
-                END IF; 
-            END $$;
-        """)
-
-        # 3. 프로필(AI 설정) 테이블 생성
+        # 2. 프로필(AI 설정) 테이블 생성
         cur.execute("""
             CREATE TABLE IF NOT EXISTS profile (
                 id INTEGER PRIMARY KEY, 
@@ -210,7 +205,7 @@ def logout():
     return redirect(url_for('index'))
 
 # =========================
-# Groq AI 유틸
+# Groq AI 유틸 (최적화 모델 적용)
 # =========================
 
 def call_groq(prompt: str, system_msg: str) -> str:
@@ -219,7 +214,8 @@ def call_groq(prompt: str, system_msg: str) -> str:
 
     try:
         completion = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            # ▼▼▼ 서버 속도 최적화를 위해 가장 빠른 모델로 통일 ▼▼▼
+            model="llama3-8b-8192", 
             messages=[
                 {"role": "system", "content": system_msg},
                 {"role": "user", "content": prompt},
@@ -227,6 +223,7 @@ def call_groq(prompt: str, system_msg: str) -> str:
             temperature=0.5,
         )
         raw_text = completion.choices[0].message.content
+        # 마크다운에 테이블 확장자 추가
         html_text = markdown.markdown(raw_text, extensions=['extra', 'nl2br', 'tables'])
         return html_text
     except Exception as e:
@@ -410,7 +407,7 @@ def settings():
     return render_template("settings.html", profile=profile or {})
 
 # =========================
-# AI 분석 (프로필 + 직무 반영)
+# AI 분석 (프로필 반영)
 # =========================
 
 @app.route("/analyze")
@@ -439,39 +436,35 @@ def analyze():
     
     return render_template("analyze.html", experiences=exps, ai_result=ai_result)
 
-# [1] 학과 기반 직무 탐색 라우트 (충돌 해결)
+# [1] 학과 기반 진로 탐색 라우트 (기업 목록 전달 + 자동완성)
 @app.route('/career', methods=['GET', 'POST'])
 def career():
-    # 로그인 체크 (필요시 사용)
     if not session.get('logged_in'):
         flash('로그인이 필요합니다.', 'warning')
         return redirect(url_for('login'))
 
     result = None
-    selected_major = None
-    selected_company = None
+    selected_major = request.form.get('major')
+    selected_company = request.form.get('company')
 
-    if request.method == 'POST':
-        selected_major = request.form.get('major')
-        selected_company = request.form.get('company')
+    if request.method == 'POST' and selected_major and selected_company:
+        try:
+            prompt = f"""
+            당신은 취업 컨설턴트입니다.
+            [정보] 전공: {selected_major}, 희망 기업: {selected_company}
+            [요청] 이 전공자가 해당 기업에 지원 가능한 직무 5가지를 추천하고, 필요한 핵심 역량을 한 줄로 요약해줘.
+            반드시 마크다운 표(| 추천 직무 | 핵심 역량 및 업무 요약 |) 형식으로만 출력해.
+            """
+            result = call_groq(prompt, "너는 취업 컨설턴트다.")
+        except Exception as e:
+            flash(f"오류 발생: {str(e)}", 'danger')
 
-        if selected_major and selected_company:
-            try:
-                prompt = f"""
-                당신은 취업 컨설턴트입니다.
-                [정보] 전공: {selected_major}, 희망 기업: {selected_company}
-                [요청] 이 전공자가 해당 기업에 지원 가능한 직무 5가지를 추천하고, 필요한 핵심 역량을 한 줄로 요약해줘.
-                반드시 마크다운 표(| 직무 | 역량 |) 형식으로만 출력해.
-                """
-                # 함수 재사용
-                result = call_groq(prompt, "너는 취업 컨설턴트다.")
-            except Exception as e:
-                flash(f"오류 발생: {str(e)}", 'danger')
-
+    # company_options를 템플릿에 전달하여 자동완성 기능 활성화
     return render_template('career.html', majors=MAJORS, result=result, 
-                           sel_major=selected_major, sel_company=selected_company)
+                           sel_major=selected_major, sel_company=selected_company,
+                           company_options=COMPANY_OPTIONS)
 
-# [2] 기업 합격 분석 (직무 반영)
+# [2] 기업 합격 분석 (직무 반영 및 최적화 모델 적용)
 @app.route("/company_analyze", methods=["GET", "POST"])
 def company_analyze():
     exps = fetch_all_experiences()
@@ -482,7 +475,7 @@ def company_analyze():
     
     if request.method == "POST":
         target_company = request.form.get("company")
-        target_role = request.form.get("job") # HTML name="job"
+        target_role = request.form.get("job") 
         portfolio_text = build_portfolio_text(exps)
         
         user_context = f"""
@@ -503,7 +496,7 @@ def company_analyze():
 
     return render_template("company_analyze.html", company_options=COMPANY_OPTIONS, ai_result=ai_result, target_company=target_company, target_role=target_role)
 
-# [3] 이력서 생성 (직무 반영)
+# [3] 이력서 생성 (직무 반영 및 최적화 모델 적용)
 @app.route("/resume", methods=["GET", "POST"])
 def resume():
     exps = fetch_all_experiences(order_by_recent=False)
@@ -514,7 +507,7 @@ def resume():
     
     if request.method == "POST":
         target_company = request.form.get("company") or ""
-        target_role = request.form.get("job") or "" # HTML name="job"
+        target_role = request.form.get("job") or "" 
         portfolio_text = build_portfolio_text(exps)
         
         prompt = f"""
@@ -538,7 +531,7 @@ def resume():
         target_role=target_role,
     )
 
-# [4] 자소서 생성 (직무 반영)
+# [4] 자소서 생성 (직무 반영 및 최적화 모델 적용)
 @app.route("/cover_letter", methods=["GET", "POST"])
 def cover_letter():
     exps = fetch_all_experiences(order_by_recent=False)
@@ -549,7 +542,7 @@ def cover_letter():
     
     if request.method == "POST":
         target_company = request.form.get("company") or ""
-        target_role = request.form.get("job") or "" # HTML name="job"
+        target_role = request.form.get("job") or "" 
         extra_request = request.form.get("extra_request", "").strip()
         
         portfolio_text = build_portfolio_text(exps)

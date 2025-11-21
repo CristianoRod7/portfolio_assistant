@@ -3,6 +3,7 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-lg-8">
+        <!-- 카드: 입력 폼 -->
         <div class="card card-dark border-0 mb-4">
             <div class="card-body p-5">
                 <h2 class="fw-bold mb-2 text-white">🎓 학과 기반 직무 탐색</h2>
@@ -12,6 +13,7 @@
                 </p>
 
                 <form method="POST" action="{{ url_for('career') }}">
+                    <!-- 1. 학과 선택 -->
                     <div class="mb-4">
                         <label class="form-label text-info fw-bold">1. 본인의 전공을 선택하세요</label>
                         <select class="form-select bg-dark text-white border-secondary p-3" name="major" required>
@@ -28,11 +30,23 @@
                         </select>
                     </div>
 
+                    <!-- 2. 기업 입력 (자동완성 적용) -->
                     <div class="mb-4">
                         <label class="form-label text-success fw-bold">2. 희망하는 기업명을 입력하세요</label>
+                        
+                        <!-- ▼▼▼ [수정됨] 리스트 연결 및 placeholder 변경 ▼▼▼ -->
                         <input type="text" name="company" class="form-control bg-dark text-white border-secondary p-3" 
-                               placeholder="예: 삼성전자, 충남도청, 현대자동차, 성심당 등" 
-                               value="{{ sel_company if sel_company else '' }}" required>
+                               placeholder="기업명을 입력하거나 클릭하여 선택하세요" 
+                               value="{{ sel_company if sel_company else '' }}" 
+                               list="companyOptions" autocomplete="off" required>
+                        
+                        <!-- 자동완성 목록 데이터 -->
+                        <datalist id="companyOptions">
+                            {% for company in company_options %}
+                                <option value="{{ company }}">
+                            {% endfor %}
+                        </datalist>
+                        <!-- ▲▲▲ -->
                     </div>
 
                     <div class="d-grid">
@@ -44,6 +58,7 @@
             </div>
         </div>
 
+        <!-- 카드: 결과 표시 (AI 분석 완료 시에만 표시됨) -->
         {% if result %}
         <div class="card card-dark border-0 animate-slide-up">
             <div class="card-header border-secondary bg-transparent py-3">
@@ -54,6 +69,7 @@
                 </h5>
             </div>
             <div class="card-body p-4">
+                <!-- AI가 써준 마크다운 내용이 여기 들어감 -->
                 <div class="markdown-body">
                     {{ result | safe }}
                 </div>

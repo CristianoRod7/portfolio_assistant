@@ -34,8 +34,17 @@
 
         <!-- 차트 및 활동 목록 -->
         <div class="card card-dark border-0 mb-4">
-            <div class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
-                <h5 class="text-white fw-bold mb-0">최근 활동 기록</h5>
+            <div class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <h5 class="text-white fw-bold mb-0">최근 활동 기록</h5>
+                    {% if logged_in %}
+                        <!-- ▼▼▼ [추가됨] 항상 보이는 추가 버튼 ▼▼▼ -->
+                        <a href="{{ url_for('add') }}" class="btn btn-sm btn-ai rounded-pill px-3">
+                            + 활동 추가
+                        </a>
+                    {% endif %}
+                </div>
+                
                 <!-- 검색창 -->
                 <div class="input-group input-group-sm w-auto">
                     <span class="input-group-text bg-dark border-secondary text-secondary">🔍</span>
@@ -86,7 +95,6 @@
                 <h6 class="text-secondary small fw-bold mb-3">AI ASSISTANT TOOLS</h6>
                 
                 <div class="d-grid gap-3">
-                    <!-- ▼▼▼ [추가됨] 진로 탐색 버튼 ▼▼▼ -->
                     <a href="{{ url_for('career') }}" class="btn btn-outline-light text-start p-3 d-flex align-items-center justify-content-between group-hover">
                         <div class="d-flex align-items-center">
                             <span class="fs-4 me-3">🎓</span>
@@ -97,7 +105,6 @@
                         </div>
                         <span class="text-secondary">→</span>
                     </a>
-                    <!-- ▲▲▲ -->
 
                     <a href="{{ url_for('analyze') }}" class="btn btn-outline-light text-start p-3 d-flex align-items-center justify-content-between">
                         <div class="d-flex align-items-center">
