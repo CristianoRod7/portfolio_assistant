@@ -13,8 +13,8 @@
       --card-bg: rgba(24, 24, 27, 0.6);
       --accent-color: #8b5cf6; /* Violet */
       --accent-glow: #7c3aed;
-      --text-main: #f4f4f5;
-      --text-sub: #a1a1aa;
+      --text-main: #f4f4f5; /* 밝은 흰색 */
+      --text-sub: #a1a1aa;  /* 밝은 회색 */
     }
     body {
       background-color: var(--bg-color);
@@ -57,10 +57,35 @@
       transform: translateY(-1px);
     }
     
-    /* Markdown Style Fixes */
-    .markdown-body h1, .markdown-body h2, .markdown-body h3 { margin-top: 1.5rem; margin-bottom: 1rem; color: #fff; }
-    .markdown-body ul { padding-left: 1.2rem; color: var(--text-sub); }
-    .markdown-body strong { color: #a78bfa; }
+    /* ▼▼▼ [중요] 마크다운 텍스트 컬러 강제 적용 수정 ▼▼▼ */
+    .markdown-body {
+      color: var(--text-main) !important; /* 기본 글자색 강제 흰색 */
+    }
+    .markdown-body h1, .markdown-body h2, .markdown-body h3, 
+    .markdown-body h4, .markdown-body h5, .markdown-body h6 { 
+      margin-top: 1.5rem; 
+      margin-bottom: 1rem; 
+      color: #fff !important; /* 헤더는 완전 흰색 */
+      font-weight: 700;
+    }
+    .markdown-body p {
+      color: #e4e4e7 !important; /* 본문은 아주 밝은 회색 */
+      line-height: 1.7;
+    }
+    .markdown-body ul, .markdown-body ol { 
+      padding-left: 1.2rem; 
+      color: #d4d4d8 !important; /* 리스트도 밝은 회색 */
+    }
+    .markdown-body strong { 
+      color: #a78bfa !important; /* 강조(굵게)는 보라색 포인트 */
+    }
+    .markdown-body blockquote {
+      border-left: 4px solid #8b5cf6;
+      padding-left: 1rem;
+      color: #a1a1aa !important;
+      font-style: italic;
+    }
+    /* ▲▲▲ 수정 끝 ▲▲▲ */
 
     /* Loading Overlay */
     #loading-overlay {
@@ -90,30 +115,27 @@
     </button>
     <div class="collapse navbar-collapse" id="navMenu">
       <ul class="navbar-nav ms-auto">
-        <!-- AI 도구 메뉴는 누구나 볼 수 있음 -->
+        <!-- AI 도구 메뉴 -->
         <li class="nav-item"><a class="nav-link" href="{{ url_for('analyze') }}">AI 분석</a></li>
         <li class="nav-item"><a class="nav-link" href="{{ url_for('company_analyze') }}">기업 맞춤</a></li>
 
-        <!-- ▼▼▼ 로그인 상태에 따라 버튼 변경 ▼▼▼ -->
+        <!-- 로그인 상태에 따라 버튼 변경 -->
         {% if logged_in %}
-          <!-- 관리자 모드 -->
           <li class="nav-item"><a class="nav-link text-info" href="{{ url_for('add') }}">활동 추가</a></li>
           <li class="nav-item border-start border-secondary mx-2 d-none d-lg-block"></li>
           <li class="nav-item"><a class="nav-link text-success" href="{{ url_for('backup_page') }}">💾 백업관리</a></li>
           <li class="nav-item"><a class="nav-link text-danger" href="{{ url_for('logout') }}">로그아웃</a></li>
         {% else %}
-          <!-- 방문자 모드 -->
           <li class="nav-item border-start border-secondary mx-2 d-none d-lg-block"></li>
           <li class="nav-item"><a class="nav-link text-secondary" href="{{ url_for('login') }}">관리자 로그인</a></li>
         {% endif %}
-        <!-- ▲▲▲ -->
       </ul>
     </div>
   </div>
 </nav>
 
 <div class="container mb-5">
-  <!-- 플래시 메시지 (로그인/로그아웃 알림 등) -->
+  <!-- 플래시 메시지 -->
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       {% for category, message in messages %}
@@ -132,7 +154,6 @@
 <script>
   document.querySelectorAll('form').forEach(form => {
     form.addEventListener('submit', () => {
-      // 파일 업로드나 로그인 폼이 아닌 경우에만 로딩바 표시 (선택사항)
       if(!form.action.includes('login') && !form.enctype.includes('multipart')) {
           document.getElementById('loading-overlay').style.display = 'flex';
       }
