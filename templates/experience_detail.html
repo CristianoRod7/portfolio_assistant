@@ -1,49 +1,29 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2 class="mb-3">활동 상세</h2>
+<h3 class="mb-3">활동 상세</h3>
 
-<div class="card mb-4">
-  <div class="card-body">
-    <h4 class="card-title mb-2">{{ exp['title'] }}</h4>
-    <h6 class="card-subtitle mb-2 text-muted">
-      {{ exp['category'] }} · {{ exp['start_date'] }} ~ {{ exp['end_date'] or '' }}
-    </h6>
-
-    <p class="mt-3">
-      <strong>설명</strong><br>
-      {{ exp['description'] or '설명이 없습니다.' }}
-    </p>
-
-    <p>
-      <strong>사용 기술 / 키워드</strong><br>
-      {{ exp['skills'] or '없음' }}
-    </p>
-
-    <p>
-      <strong>투입 시간</strong><br>
-      {{ exp['hours'] }} 시간
-    </p>
-
-    <a href="{{ url_for('index') }}" class="btn btn-secondary btn-sm">← 목록으로</a>
-
-    <form method="post"
-          action="{{ url_for('experience_star', exp_id=exp['id']) }}"
-          class="d-inline">
-      <button type="submit" class="btn btn-primary btn-sm">
-        AI STAR 분석하기
-      </button>
-    </form>
+<div class="card-dark p-4 mb-4">
+  <div class="mb-2">
+    <span class="badge bg-primary me-2">{{ exp['category'] }}</span>
+    <span class="text-muted small">{{ exp['start_date'] }} ~ {{ exp['end_date'] or '' }}</span>
   </div>
-</div>
+  <h4 class="mb-3">{{ exp['title'] }}</h4>
 
-{% if star_analysis %}
-<div class="card">
-  <div class="card-header">AI STAR 분석 결과</div>
-  <div class="card-body" style="white-space: pre-line;">
-    {{ star_analysis }}
-  </div>
+  {% if exp['description'] %}
+  <h6 class="text-secondary">설명</h6>
+  <p>{{ exp['description'] }}</p>
+  {% endif %}
+
+  {% if exp['skills'] %}
+  <h6 class="text-secondary">기술 / 키워드</h6>
+  <p>{{ exp['skills'] }}</p>
+  {% endif %}
+
+  <h6 class="text-secondary">투입 시간</h6>
+  <p>{{ exp['hours'] }} 시간</p>
+
+  <a href="{{ url_for('index') }}" class="btn btn-outline-light mt-2">목록으로</a>
 </div>
-{% endif %}
 
 {% endblock %}

@@ -193,9 +193,9 @@ def analyze():
         tips = [ai_text]
 
     except Exception as e:
-        tips = [f"AI 분석 중 오류가 발생했습니다: {e}"]
+         tips = [f"AI 분석 중 오류가 발생했습니다: {e}"]
+         return render_template("analyze.html", experiences=exps, tips=tips)
 
-    return render_template("analyze.html", experiences=exps, tips=tips)
 
 # =========================
 # 회사 맞춤 분석
