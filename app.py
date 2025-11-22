@@ -383,62 +383,6 @@ google = oauth.register(
     client_kwargs={'scope': 'openid email profile'}
 )
 
-@app.route("/login/google")
-def google_login():
-    redirect_uri = url_for('google_callback', _external=True)
-    return google.authorize_redirect(redirect_uri)
-
-
-@app.route("/auth/google/callback")
-def google_callback():
-    token = google.authorize_access_token()
-    resp = google.get('userinfo')
-    user_info = resp.json()
-
-    google_id = user_info['id']
-    email = user_info.get('email', f"google_user_{google_id}@noemail.com")
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-
-    # 기존 유저 존재?
-    cur.execute(
-        "SELECT * FROM users WHERE provider=%s AND provider_id=%s",
-        ('google', str(google_id))
-    )
-    user = cur.fetchone()
-
-    if not user:
-        # 신규 가입
-        cur.execute("""
-            INSERT INTO users (email, password_hash, created_at, provider, provider_id)
-            VALUES (%s, %s, %s, %s, %s)
-            RETURNING id;
-        """, (
-            email,
-            "",  # 소셜로그인은 비밀번호 없음
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "google",
-            str(google_id)
-        ))
-        new_id = cur.fetchone()['id']
-
-        # 프로필도 자동 생성
-        cur.execute("INSERT INTO profile (user_id) VALUES (%s)", (new_id,))
-        user_id = new_id
-        conn.commit()
-    else:
-        user_id = user['id']
-
-    cur.close()
-    conn.close()
-
-    session['logged_in'] = True
-    session['is_admin'] = False
-    session['user_id'] = user_id
-
-    flash("구글 계정으로 로그인되었습니다.", "success")
-    return redirect(url_for('index'))
 
 
 # ----------------------------
