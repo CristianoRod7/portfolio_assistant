@@ -46,9 +46,16 @@ COMPANY_OPTIONS = [
 
 # 학과 목록
 MAJORS = {
-    "공학계열": ["건설안전방재학과", "환경에너지학과", "소방안전관리학과", "전기전자공학과", "컴퓨터공학과", "건축인테리어학과", "첨단기술융합학부"],
-    "인문사회계열": ["자치행정학과", "경찰행정학과", "토지행정학과", "사회복지학과"],
-    "자연과학계열": ["호텔조리제빵학과", "뷰티코디네이션학과", "작업치료학과", "스마트팜학과"]
+    "공학계열": [
+        "건설안전방재학과", "환경에너지학과", "소방안전관리학과",
+        "전기전자공학과", "컴퓨터공학과", "건축인테리어학과", "첨단기술융합학부"
+    ],
+    "인문사회계열": [
+        "자치행정학과", "경찰행정학과", "토지행정학과", "사회복지학과"
+    ],
+    "자연과학계열": [
+        "호텔조리제빵학과", "뷰티코디네이션학과", "작업치료학과", "스마트팜학과"
+    ]
 }
 
 # =========================
@@ -67,15 +74,17 @@ def get_db_connection():
 
 
 def init_db():
+    """
+    Neon(PostgreSQL)에 users / profile / experience 테이블 생성.
+    before_first_request에서 한 번만 호출된다.
+    """
     conn = get_db_connection()
     if not conn:
         print("❌ DB 연결 실패")
         return
     cur = conn.cursor()
 
-    # ---------------------------
-    # users 테이블 생성
-    # ---------------------------
+    # users 테이블
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
@@ -85,10 +94,7 @@ def init_db():
         );
     """)
 
-    # ---------------------------
-    # profile 테이블 생성 (1:1)
-    # user_id = users.id
-    # ---------------------------
+    # profile 테이블 (users와 1:1 매칭)
     cur.execute("""
         CREATE TABLE IF NOT EXISTS profile (
             user_id INTEGER PRIMARY KEY,
@@ -104,10 +110,7 @@ def init_db():
         );
     """)
 
-    # ---------------------------
-    # experience 테이블 생성 (N:1)
-    # user_id = users.id
-    # ---------------------------
+    # experience 테이블 (user_id FK)
     cur.execute("""
         CREATE TABLE IF NOT EXISTS experience (
             id SERIAL PRIMARY KEY,
@@ -132,11 +135,6 @@ def init_db():
     cur.close()
     conn.close()
     print("✅ DB 초기화 완료 (테이블 생성됨)")
-
-
-    conn.commit()
-    cur.close()
-    conn.close()
 
 
 def fetch_all_experiences(order_by_recent=True, user_id=None):
@@ -282,8 +280,9 @@ def admin_login():
         else:
             return render_template('login.html', error='비밀번호가 틀렸습니다.', mode='admin')
     return render_template('login.html', mode='admin')
-@app.route("/admin/user_timeline")
 
+
+@app.route("/admin/user_timeline")
 @admin_required
 def admin_user_timeline():
     target_user_id = request.args.get("user_id", type=int)
@@ -291,13 +290,13 @@ def admin_user_timeline():
         flash("user_id가 필요합니다.", "warning")
         return redirect(url_for("admin_user_list"))
 
-    # 유저 기본 정보
     conn = get_db_connection()
+    if not conn:
+        return "DB 연결 오류", 500
     cur = conn.cursor()
     cur.execute("SELECT id, email, created_at FROM users WHERE id = %s", (target_user_id,))
     user_info = cur.fetchone()
 
-    # 유저 경험 전체 (최신순)
     cur.execute(
         "SELECT * FROM experience WHERE user_id = %s ORDER BY start_date DESC NULLS LAST, id DESC",
         (target_user_id,)
@@ -312,8 +311,9 @@ def admin_user_timeline():
         user_info=user_info,
         experiences=experiences
     )
-@app.route("/admin/user_backup")
 
+
+@app.route("/admin/user_backup")
 @admin_required
 def admin_user_backup():
     target_user_id = request.args.get("user_id", type=int)
@@ -322,16 +322,16 @@ def admin_user_backup():
         return redirect(url_for("admin_user_list"))
 
     conn = get_db_connection()
+    if not conn:
+        return "DB 연결 오류", 500
     cur = conn.cursor()
 
-    # 유저 기본 정보
     cur.execute(
         "SELECT id, email, created_at FROM users WHERE id = %s",
         (target_user_id,)
     )
     user_info = cur.fetchone()
 
-    # 경험 개수
     cur.execute(
         "SELECT COUNT(*) AS cnt FROM experience WHERE user_id = %s",
         (target_user_id,)
@@ -461,7 +461,6 @@ def index():
         target_user_id = session.get('user_id')
 
     exps = fetch_all_experiences(user_id=target_user_id, order_by_recent=True)
-
     total_hours = sum([e['hours'] for e in exps if e['hours']])
 
     categories = {}
@@ -567,7 +566,6 @@ def edit(exp_id):
         return "DB 연결 오류", 500
     cur = conn.cursor()
 
-    # 권한 체크 + 기존 데이터 가져오기
     if session.get('is_admin'):
         cur.execute("SELECT * FROM experience WHERE id = %s", (exp_id,))
     else:
@@ -957,7 +955,8 @@ def import_data():
         return redirect(url_for('index', user_id=target_user_id if session.get('is_admin') else None))
     except Exception as e:
         return f"복구 실패: {str(e)}", 500
-    
+
+
 @app.route("/admin/user_profile")
 @admin_required
 def admin_user_profile():
@@ -966,17 +965,16 @@ def admin_user_profile():
         flash("user_id가 필요합니다.", "warning")
         return redirect(url_for("admin_user_list"))
 
-    # 유저 정보
     conn = get_db_connection()
+    if not conn:
+        return "DB 연결 오류", 500
     cur = conn.cursor()
     cur.execute("SELECT id, email, created_at FROM users WHERE id = %s", (target_user_id,))
     user_info = cur.fetchone()
 
-    # 프로필 정보
     cur.execute("SELECT * FROM profile WHERE user_id = %s", (target_user_id,))
     profile = cur.fetchone()
 
-    # 경험 목록
     cur.execute(
         "SELECT * FROM experience WHERE user_id = %s ORDER BY start_date DESC NULLS LAST",
         (target_user_id,)
@@ -992,6 +990,8 @@ def admin_user_profile():
         profile=profile,
         experiences=experiences
     )
+
+
 @app.route("/admin/dashboard")
 @admin_required
 def admin_dashboard():
@@ -1000,19 +1000,15 @@ def admin_dashboard():
         return "DB 연결 오류", 500
     cur = conn.cursor()
 
-    # 총 유저 수
     cur.execute("SELECT COUNT(*) AS cnt FROM users")
     total_users = cur.fetchone()["cnt"]
 
-    # 총 활동 수
     cur.execute("SELECT COUNT(*) AS cnt FROM experience")
     total_experiences = cur.fetchone()["cnt"]
 
-    # 활동이 있는 유저 수
     cur.execute("SELECT COUNT(DISTINCT user_id) AS cnt FROM experience")
     active_users = cur.fetchone()["cnt"]
 
-    # 전공별 유저 수 (상위 5개)
     cur.execute("""
         SELECT COALESCE(major, '미등록') AS major, COUNT(*) AS cnt
         FROM profile
@@ -1022,7 +1018,6 @@ def admin_dashboard():
     """)
     majors = cur.fetchall()
 
-    # 최근 가입 유저 5명
     cur.execute("""
         SELECT id, email, created_at
         FROM users
@@ -1031,7 +1026,6 @@ def admin_dashboard():
     """)
     recent_users = cur.fetchall()
 
-    # 활동 많이 한 유저 5명
     cur.execute("""
         SELECT u.id, u.email, COUNT(e.*) AS exp_count
         FROM users u
@@ -1057,9 +1051,16 @@ def admin_dashboard():
 
 
 # =========================
-# 8. 실행
+# 8. 앱 시작시 DB 초기화 (한 번만)
 # =========================
 
+@app.before_first_request
+def initialize():
+    try:
+        init_db()
+    except Exception as e:
+        print("DB init error:", e)
+
+
 if __name__ == "__main__":
-    init_db()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
