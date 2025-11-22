@@ -1148,64 +1148,96 @@ def social_login_process(email: str):
 # 네이버 로그인
 # =========================
 
+# ================================
+# 네이버 로그인 (OAuth)
+# ================================
+import requests
+import os
+from flask import request, redirect, session, flash
+
+NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
+NAVER_SECRET_KEY = os.getenv("NAVER_SECRET_KEY")
+NAVER_REDIRECT_URI = os.getenv("NAVER_REDIRECT_URI")
+
 @app.route("/login/naver")
 def naver_login():
-    """
-    네이버 로그인 페이지로 이동
-    """
-    query = urlencode({
-        "response_type": "code",
-        "client_id": os.getenv("NAVER_CLIENT_ID"),
-        "redirect_uri": os.getenv("NAVER_REDIRECT_URI"),
-        "state": "NAVER_LOGIN_STATE_123"   # 아무 문자열 가능
-    })
-
-    return redirect("https://nid.naver.com/oauth2.0/authorize?" + query)
+    base = "https://nid.naver.com/oauth2.0/authorize"
+    params = (
+        f"?response_type=code"
+        f"&client_id={NAVER_CLIENT_ID}"
+        f"&redirect_uri={NAVER_REDIRECT_URI}"
+        f"&state=naver1234"
+    )
+    return redirect(base + params)
 
 
 @app.route("/oauth/naver/callback")
 def naver_callback():
-    """
-    네이버 로그인 콜백
-    """
     code = request.args.get("code")
-    state = request.args.get("state", "NAVER_LOGIN_STATE_123")
+    state = request.args.get("state")
 
-    # 1) Access Token 요청
-    token_res = requests.post(
-        "https://nid.naver.com/oauth2.0/token",
-        data={
-            "grant_type": "authorization_code",
-            "client_id": os.getenv("NAVER_CLIENT_ID"),
-            "client_secret": os.getenv("NAVER_CLIENT_SECRET"),
-            "redirect_uri": os.getenv("NAVER_REDIRECT_URI"),
-            "code": code,
-            "state": state,
-        }
-    ).json()
+    # 토큰 요청
+    token_url = "https://nid.naver.com/oauth2.0/token"
+    data = {
+        "grant_type": "authorization_code",
+        "client_id": NAVER_CLIENT_ID,
+        "client_secret": NAVER_SECRET_KEY,
+        "code": code,
+        "state": state,
+    }
+    token_res = requests.post(token_url, data=data).json()
 
-    access_token = token_res.get("access_token")
-    if not access_token:
-        return "네이버 토큰 발급 오류: " + str(token_res)
+    if "access_token" not in token_res:
+        return f"네이버 토큰 오류 발생: {token_res}"
 
-    # 2) 유저 정보 가져오기
-    profile_res = requests.get(
+    access_token = token_res["access_token"]
+
+    # 사용자 정보 요청
+    user_info = requests.get(
         "https://openapi.naver.com/v1/nid/me",
-        headers={"Authorization": f"Bearer {access_token}"},
+        headers={"Authorization": f"Bearer {access_token}"}
     ).json()
 
-    if profile_res.get("resultcode") != "00":
-        return "네이버 프로필 오류: " + str(profile_res)
+    if user_info["resultcode"] != "00":
+        return f"네이버 사용자 정보 오류: {user_info}"
 
-    profile = profile_res["response"]
-    email = profile.get("email")
+    profile = user_info["response"]
+    provider_id = profile["id"]
+    email = profile.get("email", None)
+    name = profile.get("name", "네이버사용자")
 
-    if not email:
-        # 네이버는 이메일 제공 동의를 안 하면 없음
-        email = f"naver_user_{profile['id']}@noemail.com"
+    # DB 처리 (이미 있으면 로그인, 없으면 생성)
+    cur = conn.cursor()
+    cur.execute("SELECT id FROM users WHERE provider='naver' AND provider_id=%s", (provider_id,))
+    existing = cur.fetchone()
 
-    # 3) 공통 처리 (자동 가입 및 로그인)
-    return social_login_process(email)
+    if existing:
+        session["user"] = {
+            "id": existing[0],
+            "email": email,
+            "name": name,
+            "provider": "naver"
+        }
+    else:
+        cur.execute(
+            "INSERT INTO users (email, name, provider, provider_id) VALUES (%s, %s, %s, %s)",
+            (email, name, "naver", provider_id)
+        )
+        conn.commit()
+
+        cur.execute("SELECT id FROM users WHERE provider='naver' AND provider_id=%s", (provider_id,))
+        new_user = cur.fetchone()
+
+        session["user"] = {
+            "id": new_user[0],
+            "email": email,
+            "name": name,
+            "provider": "naver"
+        }
+
+    cur.close()
+    return redirect(url_for("index"))
+
 
 
 
