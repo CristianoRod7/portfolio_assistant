@@ -1305,6 +1305,7 @@ def kakao_callback():
         data={
             "grant_type": "authorization_code",
             "client_id": os.getenv("KAKAO_CLIENT_ID"),
+            "client_secret": os.getenv("KAKAO_SECRET_KEY"),
             "redirect_uri": redirect_uri,
             "code": code,
         },
