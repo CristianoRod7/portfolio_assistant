@@ -1054,7 +1054,7 @@ def admin_dashboard():
 # 8. 앱 시작시 DB 초기화 (한 번만)
 # =========================
 
-@app.before_first_request
+@app.before_serving
 def initialize():
     try:
         init_db()
