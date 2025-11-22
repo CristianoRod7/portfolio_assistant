@@ -2,6 +2,8 @@ import os
 import csv
 import io
 import json
+import requests
+from authlib.integrations.flask_client import OAuth
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime
@@ -358,6 +360,171 @@ def admin_user_backup():
         user_info=user_info,
         exp_count=exp_count
     )
+# =========================
+# 4-1. 소셜 로그인 (Google + Kakao)
+# =========================
+
+from authlib.integrations.flask_client import OAuth
+import requests
+
+oauth = OAuth(app)
+
+# ----------------------------
+# 구글 OAuth 설정
+# ----------------------------
+google = oauth.register(
+    name='google',
+    client_id=os.getenv("GOOGLE_CLIENT_ID"),
+    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+    access_token_url='https://oauth2.googleapis.com/token',
+    authorize_url='https://accounts.google.com/o/oauth2/v2/auth',
+    api_base_url='https://www.googleapis.com/oauth2/v2/',
+    client_kwargs={'scope': 'openid email profile'}
+)
+
+@app.route("/login/google")
+def google_login():
+    redirect_uri = url_for('google_callback', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+
+@app.route("/auth/google/callback")
+def google_callback():
+    token = google.authorize_access_token()
+    resp = google.get('userinfo')
+    user_info = resp.json()
+
+    google_id = user_info['id']
+    email = user_info.get('email', f"google_user_{google_id}@noemail.com")
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # 기존 유저 존재?
+    cur.execute(
+        "SELECT * FROM users WHERE provider=%s AND provider_id=%s",
+        ('google', str(google_id))
+    )
+    user = cur.fetchone()
+
+    if not user:
+        # 신규 가입
+        cur.execute("""
+            INSERT INTO users (email, password_hash, created_at, provider, provider_id)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id;
+        """, (
+            email,
+            "",  # 소셜로그인은 비밀번호 없음
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "google",
+            str(google_id)
+        ))
+        new_id = cur.fetchone()['id']
+
+        # 프로필도 자동 생성
+        cur.execute("INSERT INTO profile (user_id) VALUES (%s)", (new_id,))
+        user_id = new_id
+        conn.commit()
+    else:
+        user_id = user['id']
+
+    cur.close()
+    conn.close()
+
+    session['logged_in'] = True
+    session['is_admin'] = False
+    session['user_id'] = user_id
+
+    flash("구글 계정으로 로그인되었습니다.", "success")
+    return redirect(url_for('index'))
+
+
+# ----------------------------
+# 카카오 OAuth
+# ----------------------------
+
+KAKAO_CLIENT_ID = os.getenv("KAKAO_REST_KEY")
+
+@app.route("/login/kakao")
+def kakao_login():
+    redirect_uri = url_for('kakao_callback', _external=True)
+    kakao_auth_url = (
+        "https://kauth.kakao.com/oauth/authorize"
+        f"?client_id={KAKAO_CLIENT_ID}"
+        f"&redirect_uri={redirect_uri}"
+        "&response_type=code"
+    )
+    return redirect(kakao_auth_url)
+
+
+@app.route("/auth/kakao/callback")
+def kakao_callback():
+    code = request.args.get("code")
+    redirect_uri = url_for('kakao_callback', _external=True)
+
+    # Access Token 요청
+    token_resp = requests.post(
+        "https://kauth.kakao.com/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+            "client_id": KAKAO_CLIENT_ID,
+            "redirect_uri": redirect_uri,
+            "code": code,
+        },
+    ).json()
+
+    access_token = token_resp.get("access_token")
+
+    # 유저 정보 요청
+    user_resp = requests.get(
+        "https://kapi.kakao.com/v2/user/me",
+        headers={"Authorization": f"Bearer {access_token}"}
+    ).json()
+
+    kakao_id = user_resp["id"]
+    account = user_resp.get("kakao_account", {})
+    email = account.get("email", f"kakao_user_{kakao_id}@noemail.com")
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # 기존 유저 존재 확인
+    cur.execute(
+        "SELECT * FROM users WHERE provider=%s AND provider_id=%s",
+        ('kakao', str(kakao_id))
+    )
+    user = cur.fetchone()
+
+    if not user:
+        # 새 유저 생성
+        cur.execute("""
+            INSERT INTO users (email, password_hash, created_at, provider, provider_id)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id;
+        """, (
+            email,
+            "",
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "kakao",
+            str(kakao_id)
+        ))
+        new_id = cur.fetchone()['id']
+        cur.execute("INSERT INTO profile (user_id) VALUES (%s)", (new_id,))
+        user_id = new_id
+        conn.commit()
+    else:
+        user_id = user['id']
+
+    cur.close()
+    conn.close()
+
+    session['logged_in'] = True
+    session['is_admin'] = False
+    session['user_id'] = user_id
+
+    flash("카카오 계정으로 로그인되었습니다.", "success")
+    return redirect(url_for('index'))
 
 
 # --- 일반 유저 회원가입 ---
