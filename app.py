@@ -1156,7 +1156,7 @@ import os
 from flask import request, redirect, session, flash
 
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
-NAVER_CLIENT_SECRET = os.getenv("NAVER_SECRET_KEY")
+NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
 NAVER_REDIRECT_URI = os.getenv("NAVER_REDIRECT_URI")
 
 @app.route("/login/naver")
