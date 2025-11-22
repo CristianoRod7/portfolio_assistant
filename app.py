@@ -447,87 +447,6 @@ def google_callback():
 
 KAKAO_CLIENT_ID = os.getenv("KAKAO_REST_KEY")
 
-@app.route("/login/kakao")
-def kakao_login():
-    redirect_uri = url_for('kakao_callback', _external=True)
-    kakao_auth_url = (
-        "https://kauth.kakao.com/oauth/authorize"
-        f"?client_id={KAKAO_CLIENT_ID}"
-        f"&redirect_uri={redirect_uri}"
-        "&response_type=code"
-    )
-    return redirect(kakao_auth_url)
-
-
-@app.route("/auth/kakao/callback")
-def kakao_callback():
-    code = request.args.get("code")
-    redirect_uri = url_for('kakao_callback', _external=True)
-
-    # Access Token 요청
-    token_resp = requests.post(
-        "https://kauth.kakao.com/oauth/token",
-        data={
-            "grant_type": "authorization_code",
-            "client_id": KAKAO_CLIENT_ID,
-            "redirect_uri": redirect_uri,
-            "code": code,
-        },
-    ).json()
-
-    access_token = token_resp.get("access_token")
-
-    # 유저 정보 요청
-    user_resp = requests.get(
-        "https://kapi.kakao.com/v2/user/me",
-        headers={"Authorization": f"Bearer {access_token}"}
-    ).json()
-
-    kakao_id = user_resp["id"]
-    account = user_resp.get("kakao_account", {})
-    email = account.get("email", f"kakao_user_{kakao_id}@noemail.com")
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-
-    # 기존 유저 존재 확인
-    cur.execute(
-        "SELECT * FROM users WHERE provider=%s AND provider_id=%s",
-        ('kakao', str(kakao_id))
-    )
-    user = cur.fetchone()
-
-    if not user:
-        # 새 유저 생성
-        cur.execute("""
-            INSERT INTO users (email, password_hash, created_at, provider, provider_id)
-            VALUES (%s, %s, %s, %s, %s)
-            RETURNING id;
-        """, (
-            email,
-            "",
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "kakao",
-            str(kakao_id)
-        ))
-        new_id = cur.fetchone()['id']
-        cur.execute("INSERT INTO profile (user_id) VALUES (%s)", (new_id,))
-        user_id = new_id
-        conn.commit()
-    else:
-        user_id = user['id']
-
-    cur.close()
-    conn.close()
-
-    session['logged_in'] = True
-    session['is_admin'] = False
-    session['user_id'] = user_id
-
-    flash("카카오 계정으로 로그인되었습니다.", "success")
-    return redirect(url_for('index'))
-
-
 # --- 일반 유저 회원가입 ---
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -1345,66 +1264,6 @@ def naver_callback():
     return social_login_process(email)
 
 
-# =========================
-# 카카오 로그인
-# =========================
-
-# =========================
-# 카카오 로그인
-# =========================
-
-@app.route("/login/kakao")
-def kakao_login():
-    """
-    카카오 로그인 페이지로 이동
-    """
-    query = urlencode({
-        "client_id": KAKAO_REST_KEY,
-        "redirect_uri": KAKAO_REDIRECT_URI,
-        "response_type": "code",
-    })
-    return redirect("https://kauth.kakao.com/oauth/authorize?" + query)
-
-
-@app.route("/oauth/kakao/callback")
-def kakao_callback():
-    """
-    카카오 로그인 콜백
-    """
-    code = request.args.get("code")
-
-    # 1) 토큰 발급
-    token_res = requests.post(
-        "https://kauth.kakao.com/oauth/token",
-        data={
-            "grant_type": "authorization_code",
-            "client_id": KAKAO_REST_KEY,
-            "redirect_uri": KAKAO_REDIRECT_URI,
-            "code": code,
-            # Kakao 앱에서 client_secret 사용 중일 때만 필요
-            "client_secret": KAKAO_SECRET_KEY or "",
-        }
-    ).json()
-
-    access_token = token_res.get("access_token")
-    if not access_token:
-        return "카카오 토큰 발급 오류: " + str(token_res), 500
-
-    # 2) 사용자 정보 조회
-    profile = requests.get(
-        "https://kapi.kakao.com/v2/user/me",
-        headers={"Authorization": f"Bearer {access_token}"}
-    ).json()
-
-    kakao_account = profile.get("kakao_account", {})
-    email = kakao_account.get("email")
-
-    # 이메일 제공 동의 안 했을 때 대비
-    if not email:
-        email = f"kakao_user_{profile.get('id')}@noemail.com"
-
-    # 3) 공통 처리 (자동 가입 + 로그인)
-    return social_login_process(email)
 
 
 # =========================
@@ -1462,6 +1321,93 @@ def google_callback():
 
     # 3) 공통 처리 (자동 가입 + 로그인)
     return social_login_process(email)
+
+
+# =========================
+# 카카오 로그인
+# =========================
+
+
+@app.route("/login/kakao")
+def kakao_login():
+    redirect_uri = url_for('kakao_callback', _external=True)
+    kakao_auth_url = (
+        "https://kauth.kakao.com/oauth/authorize"
+        f"?client_id={KAKAO_CLIENT_ID}"
+        f"&redirect_uri={redirect_uri}"
+        "&response_type=code"
+    )
+    return redirect(kakao_auth_url)
+
+
+@app.route("/auth/kakao/callback")
+def kakao_callback():
+    code = request.args.get("code")
+    redirect_uri = url_for('kakao_callback', _external=True)
+
+    # Access Token 요청
+    token_resp = requests.post(
+        "https://kauth.kakao.com/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+            "client_id": KAKAO_CLIENT_ID,
+            "redirect_uri": redirect_uri,
+            "code": code,
+        },
+    ).json()
+
+    access_token = token_resp.get("access_token")
+
+    # 유저 정보 요청
+    user_resp = requests.get(
+        "https://kapi.kakao.com/v2/user/me",
+        headers={"Authorization": f"Bearer {access_token}"}
+    ).json()
+
+    kakao_id = user_resp["id"]
+    account = user_resp.get("kakao_account", {})
+    email = account.get("email", f"kakao_user_{kakao_id}@noemail.com")
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # 기존 유저 존재 확인
+    cur.execute(
+        "SELECT * FROM users WHERE provider=%s AND provider_id=%s",
+        ('kakao', str(kakao_id))
+    )
+    user = cur.fetchone()
+
+    if not user:
+        # 새 유저 생성
+        cur.execute("""
+            INSERT INTO users (email, password_hash, created_at, provider, provider_id)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id;
+        """, (
+            email,
+            "",
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "kakao",
+            str(kakao_id)
+        ))
+        new_id = cur.fetchone()['id']
+        cur.execute("INSERT INTO profile (user_id) VALUES (%s)", (new_id,))
+        user_id = new_id
+        conn.commit()
+    else:
+        user_id = user['id']
+
+    cur.close()
+    conn.close()
+
+    session['logged_in'] = True
+    session['is_admin'] = False
+    session['user_id'] = user_id
+
+    flash("카카오 계정으로 로그인되었습니다.", "success")
+    return redirect(url_for('index'))
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
