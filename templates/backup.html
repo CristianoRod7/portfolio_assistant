@@ -8,7 +8,6 @@
       <h2 class="h4 mb-0 fw-bold">💾 데이터 백업 및 복구</h2>
     </div>
     
-    <!-- 안내 문구 -->
     <div class="alert alert-warning border-warning bg-warning bg-opacity-10 text-warning-emphasis mb-4">
       <strong>💡 안전한 보관을 위해:</strong><br>
       데이터베이스가 안전하게 연결되어 있지만, 혹시 모를 상황을 대비해 
@@ -16,7 +15,6 @@
     </div>
 
     <div class="row g-4">
-      <!-- 1. 내보내기 (다운로드) -->
       <div class="col-md-6">
         <div class="card card-dark p-4 h-100 text-center border-success border-opacity-25">
           <div class="fs-1 mb-3">📊</div>
@@ -31,7 +29,6 @@
         </div>
       </div>
 
-      <!-- 2. 가져오기 (복구) -->
       <div class="col-md-6">
         <div class="card card-dark p-4 h-100 text-center border-primary border-opacity-25">
           <div class="fs-1 mb-3">♻️</div>
@@ -41,7 +38,7 @@
             업로드하여 데이터를 복원합니다.
           </p>
           
-          <form action="{{ url_for('import_data') }}" method="post" enctype="multipart/form-data">
+          <form action="{{ url_for('import_data') }}" method="post" enctype="multipart/form-data" onsubmit="showLoading()">
             <div class="input-group mb-3">
               <input type="file" name="file" class="form-control bg-dark text-secondary border-secondary form-control-sm" accept=".csv" required>
             </div>
@@ -49,6 +46,7 @@
               📤 데이터 복원 시작
             </button>
           </form>
+          
         </div>
       </div>
     </div>

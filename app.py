@@ -328,6 +328,70 @@ def settings():
     
     # ▼▼▼ [여기 수정] majors=MAJORS 를 꼭 추가해야 합니다! ▼▼▼
     return render_template("settings.html", profile=profile or {}, majors=MAJORS)
+# =========================
+# 6. 데이터 백업/복구 (이 부분이 빠져있어서 에러가 난 것입니다)
+# =========================
+
+@app.route("/backup")
+@login_required
+def backup_page():
+    return render_template("backup.html")
+
+# [API] CSV 다운로드
+@app.route("/api/export")
+@login_required
+def export_data():
+    exps = fetch_all_experiences(order_by_recent=False)
+    output = io.StringIO()
+    writer = csv.writer(output)
+    # CSV 헤더 작성
+    writer.writerow(['category', 'title', 'description', 'start_date', 'end_date', 'skills', 'hours', 'link'])
+    
+    for r in exps:
+        writer.writerow([
+            r['category'], r['title'], r['description'], 
+            r['start_date'], r['end_date'], r['skills'], 
+            r['hours'], r.get('link','')
+        ])
+    
+    output.seek(0)
+    return Response(
+        output.getvalue().encode("utf-8-sig"),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment;filename=portfolio_backup.csv"}
+    )
+
+# [API] CSV 업로드 (복구)
+@app.route("/api/import", methods=["POST"])
+@login_required
+def import_data():
+    if 'file' not in request.files: return "파일 없음", 400
+    file = request.files['file']
+    if file.filename == '': return "파일 선택 안함", 400
+
+    try:
+        stream = io.TextIOWrapper(file.stream, encoding='utf-8-sig')
+        csv_input = csv.DictReader(stream)
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        cnt = 0
+        for row in csv_input:
+            cur.execute("""
+                INSERT INTO experience (category, title, description, start_date, end_date, skills, hours, link, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                row.get('category'), row.get('title'), row.get('description'),
+                row.get('start_date'), row.get('end_date') or None,
+                row.get('skills'), row.get('hours', 0), row.get('link', ''),
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            ))
+            cnt += 1
+        conn.commit(); cur.close(); conn.close()
+        flash(f"{cnt}개의 데이터가 복구되었습니다.", "success")
+        return redirect(url_for('index'))
+    except Exception as e:
+        return f"복구 실패: {str(e)}", 500
 if __name__ == "__main__":
     init_db()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
