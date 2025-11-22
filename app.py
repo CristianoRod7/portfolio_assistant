@@ -1161,14 +1161,18 @@ NAVER_REDIRECT_URI = os.getenv("NAVER_REDIRECT_URI")
 
 @app.route("/login/naver")
 def naver_login():
+    state = "naver1234"
+    session['naver_state'] = state   # ⭐ state 저장
+
     base = "https://nid.naver.com/oauth2.0/authorize"
     params = (
         f"?response_type=code"
         f"&client_id={NAVER_CLIENT_ID}"
         f"&redirect_uri={NAVER_REDIRECT_URI}"
-        f"&state=naver1234"
+        f"&state={state}"
     )
     return redirect(base + params)
+
 
 
 @app.route("/oauth/naver/callback")
@@ -1176,23 +1180,28 @@ def naver_callback():
     code = request.args.get("code")
     state = request.args.get("state")
 
-    # 토큰 요청
-    token_url = "https://nid.naver.com/oauth2.0/token"
-    data = {
-        "grant_type": "authorization_code",
-        "client_id": NAVER_CLIENT_ID,
-        "client_secret": NAVER_CLIENT_SECRET,
-        "code": code,
-        "state": state,
-    }
-    token_res = requests.post(token_url, data=data).json()
+    # 1) state 검증
+    if state != session.get("naver_state"):
+        return "네이버 간섭 오류: state mismatch"
+
+    # 2) 토큰 요청
+    token_res = requests.post(
+        "https://nid.naver.com/oauth2.0/token",
+        data={
+            "grant_type": "authorization_code",
+            "client_id": NAVER_CLIENT_ID,
+            "client_secret": NAVER_CLIENT_SECRET,
+            "code": code,
+            "state": state,
+        }
+    ).json()
 
     if "access_token" not in token_res:
         return f"네이버 토큰 오류 발생: {token_res}"
 
     access_token = token_res["access_token"]
 
-    # 사용자 정보 요청
+    # 3) 유저 정보 요청
     user_info = requests.get(
         "https://openapi.naver.com/v1/nid/me",
         headers={"Authorization": f"Bearer {access_token}"}
@@ -1202,41 +1211,14 @@ def naver_callback():
         return f"네이버 사용자 정보 오류: {user_info}"
 
     profile = user_info["response"]
-    provider_id = profile["id"]
-    email = profile.get("email", None)
-    name = profile.get("name", "네이버사용자")
+    email = profile.get("email")
+    if not email:
+        # 네이버는 이메일 제공 동의 안하면 NULL임 → 임시 이메일 생성
+        email = f"naver_user_{profile['id']}@noemail.com"
 
-    # DB 처리 (이미 있으면 로그인, 없으면 생성)
-    cur = conn.cursor()
-    cur.execute("SELECT id FROM users WHERE provider='naver' AND provider_id=%s", (provider_id,))
-    existing = cur.fetchone()
+    # 4) 공용 소셜 로그인 처리
+    return social_login_process(email)
 
-    if existing:
-        session["user"] = {
-            "id": existing[0],
-            "email": email,
-            "name": name,
-            "provider": "naver"
-        }
-    else:
-        cur.execute(
-            "INSERT INTO users (email, name, provider, provider_id) VALUES (%s, %s, %s, %s)",
-            (email, name, "naver", provider_id)
-        )
-        conn.commit()
-
-        cur.execute("SELECT id FROM users WHERE provider='naver' AND provider_id=%s", (provider_id,))
-        new_user = cur.fetchone()
-
-        session["user"] = {
-            "id": new_user[0],
-            "email": email,
-            "name": name,
-            "provider": "naver"
-        }
-
-    cur.close()
-    return redirect(url_for("index"))
 
 
 
