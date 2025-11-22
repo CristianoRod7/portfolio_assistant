@@ -67,16 +67,15 @@ def get_db_connection():
 
 
 def init_db():
-    """
-    ⚠️ 기존 테이블 구조(id=1 고정 profile 등)와 다르다.
-    처음 적용할 때는 기존 experience/profile 테이블을 드롭 후 다시 생성하는 걸 권장.
-    """
     conn = get_db_connection()
     if not conn:
+        print("❌ DB 연결 실패")
         return
     cur = conn.cursor()
 
-    # 유저 테이블
+    # ---------------------------
+    # users 테이블 생성
+    # ---------------------------
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
@@ -86,23 +85,33 @@ def init_db():
         );
     """)
 
-    # 프로필 테이블 (유저별 1:1)
+    # ---------------------------
+    # profile 테이블 생성 (1:1)
+    # user_id = users.id
+    # ---------------------------
     cur.execute("""
         CREATE TABLE IF NOT EXISTS profile (
-            user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            user_id INTEGER PRIMARY KEY,
             name VARCHAR(100),
             major VARCHAR(100),
             career_goal TEXT,
             strengths TEXT,
-            ai_instructions TEXT
+            ai_instructions TEXT,
+            CONSTRAINT fk_profile_user
+              FOREIGN KEY (user_id)
+              REFERENCES users(id)
+              ON DELETE CASCADE
         );
     """)
 
-    # 경험 테이블 (유저별 N개)
+    # ---------------------------
+    # experience 테이블 생성 (N:1)
+    # user_id = users.id
+    # ---------------------------
     cur.execute("""
         CREATE TABLE IF NOT EXISTS experience (
             id SERIAL PRIMARY KEY,
-            user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+            user_id INTEGER NOT NULL,
             category VARCHAR(100),
             title VARCHAR(255),
             description TEXT,
@@ -111,9 +120,19 @@ def init_db():
             skills TEXT,
             hours INTEGER,
             link TEXT,
-            created_at VARCHAR(50)
+            created_at VARCHAR(50),
+            CONSTRAINT fk_experience_user
+              FOREIGN KEY (user_id)
+              REFERENCES users(id)
+              ON DELETE CASCADE
         );
     """)
+
+    conn.commit()
+    cur.close()
+    conn.close()
+    print("✅ DB 초기화 완료 (테이블 생성됨)")
+
 
     conn.commit()
     cur.close()
