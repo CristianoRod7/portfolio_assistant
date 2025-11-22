@@ -1,348 +1,362 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 커리어 포트폴리오</title>
+  <meta charset="utf-8">
+  <title>AI Portfolio | Renderer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://your-render-url.onrender.com/">
+  <meta property="og:title" content="My AI Portfolio">
+  <meta property="og:description" content="AI가 분석해주는 개발자 포트폴리오 관리 시스템">
+  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #09090b;
+      --card-bg: rgba(24, 24, 27, 0.6);
+      --accent-color: #8b5cf6;
+      --accent-glow: #7c3aed;
+      --text-main: #f4f4f5;
+      --text-sub: #a1a1aa;
+    }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: 'Inter', sans-serif;
+      background-image: radial-gradient(circle at 50% 0%, #2e1065 0%, transparent 50%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
     
-    <!-- 부트스트랩 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <!-- 폰트 -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    .card-dark {
+      background-color: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .card-dark:hover {
+      border-color: rgba(139, 92, 246, 0.3);
+    }
+
+    .nav-bar {
+      background: rgba(9, 9, 11, 0.8);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .navbar-brand { font-weight: 800; letter-spacing: -0.5px; }
+
+    .btn-ai {
+      background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%);
+      border: none;
+      color: white;
+      font-weight: 600;
+      box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+    }
+    .btn-ai:hover {
+      box-shadow: 0 0 25px rgba(139, 92, 246, 0.5);
+      color: white;
+      transform: translateY(-1px);
+    }
     
-    <style>
-        /* =========================================
-           1. 메인 테마 & 기본 스타일
-           ========================================= */
-        :root {
-            --bg-color: #121212;
-            --card-bg: #1e1e1e;
-            --text-main: #e0e0e0;
-            --accent-color: #8b5cf6;
-        }
+    /* 마크다운 스타일 */
+    .markdown-body { color: var(--text-main) !important; }
+    .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 { 
+      margin-top: 1.5rem; margin-bottom: 1rem; color: #fff !important; font-weight: 700;
+    }
+    .markdown-body p { color: #e4e4e7 !important; line-height: 1.7; }
+    .markdown-body ul { padding-left: 1.2rem; color: #d4d4d8 !important; }
+    .markdown-body strong { color: #a78bfa !important; }
+    .markdown-body blockquote { border-left: 4px solid #8b5cf6; padding-left: 1rem; color: #a1a1aa !important; font-style: italic; }
 
-        body { 
-            font-family: 'Noto Sans KR', sans-serif; 
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            background-image: radial-gradient(circle at 50% 0%, #2e1065 0%, transparent 50%);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
+    /* ▼▼▼ [수정됨] 테이블 스타일 개선 (가독성 UP) ▼▼▼ */
+    .markdown-body table { 
+        width: 100%; 
+        border-collapse: separate; 
+        border-spacing: 0;
+        margin: 1.5rem 0; 
+        color: #e4e4e7; 
+        border: 1px solid rgba(255, 255, 255, 0.2); /* 외곽선 */
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .markdown-body th, .markdown-body td { 
+        padding: 1rem 1.5rem; /* 넉넉한 간격 */
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* 가로 줄 */
+        text-align: left;
+        vertical-align: middle;
+    }
+    .markdown-body th { 
+        background-color: rgba(139, 92, 246, 0.15); /* 헤더 배경색 */
+        font-weight: 700; 
+        color: #a78bfa; 
+        border-right: 1px solid rgba(255, 255, 255, 0.1); /* 세로 줄 */
+    }
+    .markdown-body td {
+        border-right: 1px solid rgba(255, 255, 255, 0.05); /* 내용 세로 줄 */
+    }
+    .markdown-body tr:last-child td {
+        border-bottom: none;
+    }
+    /* 첫 번째 컬럼(직무명) 강조 */
+    .markdown-body td:first-child {
+        font-weight: 600;
+        color: #fff;
+        width: 30%; /* 너비 확보 */
+    }
+    /* ▲▲▲ */
 
-        /* =========================================
-           2. 컴포넌트 디자인 (카드, 버튼, 네비게이션)
-           ========================================= */
-        .card-dark {
-            background-color: var(--card-bg);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(12px);
-        }
+    #loading-overlay {
+      position: fixed; top:0; left:0; width:100%; height:100%;
+      background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+      z-index: 9999; display: none;
+      flex-direction: column; justify-content: center; align-items: center;
+    }
+    .spinner-border { width: 3rem; height: 3rem; border-width: 0.25em; }
+    
+    /* 로딩창 닫기 버튼 */
+    #loading-close-btn {
+        margin-top: 2rem;
+        padding: 8px 20px;
+        background: transparent;
+        border: 1px solid rgba(255,255,255,0.3);
+        color: #a1a1aa;
+        border-radius: 30px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: none;
+    }
+    #loading-close-btn:hover {
+        border-color: #fff;
+        color: #fff;
+        background: rgba(255,255,255,0.1);
+    }
 
-        .nav-bar {
-            background: rgba(18, 18, 18, 0.8);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
+    footer {
+      margin-top: auto;
+      padding: 3rem 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.2);
+    }
+    footer a:hover { color: #fff !important; text-decoration: underline !important; }
+    
+    .keep-all { word-break: keep-all; }
 
-        .btn-ai {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            color: white;
-            border: none;
-            font-weight: 600;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .btn-ai:hover {
-            transform: translateY(-2px);
-            color: white;
-            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
-        }
+    /* ... 기존 스타일 ... */
 
-        /* =========================================
-           3. [핵심 수정] AI 결과 텍스트 가독성 (강제 적용)
-           ========================================= */
-        /* .ai-result 클래스 하위의 모든 요소 색상을 밝게 고정 */
-        .ai-result {
-            color: #e0e0e0 !important;
-            line-height: 1.7;
-            font-size: 1.05rem;
-        }
-        .ai-result p, .ai-result li, .ai-result span, .ai-result td, .ai-result div {
-            color: #d1d5db !important; /* 밝은 회색 */
-        }
-        .ai-result h1, .ai-result h2, .ai-result h3, .ai-result h4, .ai-result h5 {
-            color: #ffffff !important; /* 제목은 흰색 */
-            margin-top: 1.5rem;
-            margin-bottom: 1rem;
-            font-weight: 700;
-        }
-        .ai-result strong, .ai-result b {
-            color: #0dcaf0 !important; /* 강조는 형광 하늘색 */
-            font-weight: 700;
-        }
-        
-        /* 표(Table) 스타일 */
+        /* [추가] AI 분석 결과용 마크다운 테이블 스타일 */
         .ai-result table {
             width: 100%;
             border-collapse: collapse;
             margin: 20px 0;
-            background-color: #252525;
-            border-radius: 8px;
-            overflow: hidden;
+            font-size: 0.95rem;
         }
         .ai-result th, .ai-result td {
-            border: 1px solid #444;
-            padding: 12px 15px;
+            border: 1px solid #ddd;
+            padding: 12px;
             text-align: left;
         }
         .ai-result th {
-            background-color: #333;
-            color: #a78bfa !important; /* 헤더는 연보라색 */
+            background-color: #f8f9fa;
             font-weight: bold;
+            color: #333;
         }
         .ai-result tr:nth-child(even) {
-            background-color: #2a2a2a;
+            background-color: #f9f9f9;
         }
-
-        /* =========================================
-           4. 로딩 오버레이 (통일됨)
-           ========================================= */
-        #loadingOverlay {
-            display: none; /* 기본 숨김 */
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            z-index: 9999;
-            flex-direction: column; align-items: center; justify-content: center;
-            backdrop-filter: blur(5px);
-            color: white;
+        /* AI 강조 구문 스타일 */
+        .ai-result strong {
+            color: #d63384; /* 핑크색 강조 (원하는 색으로 변경 가능) */
         }
-        #loading-close-btn {
-            margin-top: 20px;
-            background: transparent; border: 1px solid rgba(255,255,255,0.3);
-            color: #aaa; border-radius: 30px; padding: 8px 20px; font-size: 0.85rem;
-            cursor: pointer; display: none; /* 5초 뒤 등장 */
-        }
-        #loading-close-btn:hover { border-color: #fff; color: #fff; }
-
-        /* 유틸리티 */
-        .keep-all { word-break: keep-all; }
-        .animate-slide-up { animation: slideUp 0.5s ease-out; }
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        footer {
-            margin-top: auto; padding: 3rem 0;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            background: rgba(0, 0, 0, 0.2);
-        }
-    </style>
-
-    <!-- 로딩 제어 스크립트 (전역 함수) -->
-    <script>
-        function showLoading() {
-            // 폼이 유효할 때만 로딩창 표시
-            const form = document.querySelector('form');
-            if (form) {
-                if (form.checkValidity()) {
-                    const overlay = document.getElementById('loadingOverlay');
-                    const closeBtn = document.getElementById('loading-close-btn');
-                    
-                    overlay.style.display = 'flex';
-                    
-                    // 5초 뒤에 닫기 버튼 보여주기
-                    setTimeout(() => {
-                        closeBtn.style.display = 'block';
-                    }, 5000);
-                }
-            } else {
-                // 폼 없는 링크 클릭 등의 경우
-                document.getElementById('loadingOverlay').style.display = 'flex';
-            }
-        }
-
-        function hideLoading() {
-            document.getElementById('loadingOverlay').style.display = 'none';
-        }
-    </script>
+  </style>
 </head>
 <body>
 
-    <!-- [통일된 로딩 화면] ID: loadingOverlay -->
-    <div id="loadingOverlay">
-        <div class="spinner-border text-info mb-3" style="width: 3rem; height: 3rem;" role="status">
-            <span class="visually-hidden">Loading...</span>
-        </div>
-        <h4 class="fw-bold text-white animate-pulse">🤖 AI가 열심히 분석 중입니다...</h4>
-        <p class="text-white-50 small">잠시만 기다려 주세요 (약 5~10초 소요)</p>
+<div id="loading-overlay">
+  <div class="spinner-border text-primary mb-3" role="status"></div>
+  <h5 class="text-white animate-pulse">AI가 분석 중입니다...</h5>
+  <p class="text-secondary small mt-2">잠시만 기다려주세요 (최대 1분 소요)</p>
+  <button id="loading-close-btn" onclick="hideLoading()">
+    ✖ 너무 오래 걸리나요? 창 닫기
+  </button>
+</div>
+
+<nav class="nav-bar navbar navbar-expand-lg navbar-dark mb-5 sticky-top">
+  <div class="container-fluid px-4">
+    <a class="navbar-brand" href="{{ url_for('index') }}">
+      <span style="color: #a78bfa;">AI</span> Portfolio
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navMenu">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <a class="nav-link text-light" href="#" data-bs-toggle="modal" data-bs-target="#helpModal">❓ 사용법</a>
+        </li>
         
-        <!-- 너무 오래 걸릴 때 닫는 버튼 -->
-        <button id="loading-close-btn" onclick="hideLoading()">
-            ✖ 너무 오래 걸리나요? 창 닫기
-        </button>
-    </div>
+        <li class="nav-item border-start border-secondary mx-2 d-none d-lg-block"></li>
 
-    <!-- 네비게이션 바 -->
-    <nav class="nav-bar navbar navbar-expand-lg navbar-dark mb-5 sticky-top">
-        <div class="container-fluid px-4">
-            <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="{{ url_for('index') }}">
-                <span style="color: #a78bfa;">🚀</span> My Portfolio AI
-            </a>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                <ul class="navbar-nav gap-2 align-items-center">
-                    <!-- 도움말 버튼 -->
-                    <li class="nav-item me-2">
-                        <a class="nav-link text-light small" href="#" data-bs-toggle="modal" data-bs-target="#helpModal">❓ 사용법</a>
-                    </li>
-                    
-                    {% if logged_in %}
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('career') }}">🎓 진로 탐색</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('analyze') }}">🔮 종합 진단</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('company_analyze') }}">🏢 합격 분석</a></li>
-                        
-                        <li class="nav-item dropdown ms-2">
-                            <a class="nav-link dropdown-toggle btn btn-sm btn-outline-secondary px-3 text-white" href="#" role="button" data-bs-toggle="dropdown">
-                                관리자 메뉴
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-dark border-secondary shadow-lg">
-                                <li><a class="dropdown-item" href="{{ url_for('add') }}">➕ 활동 추가</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('settings') }}">⚙️ AI 설정</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('backup_page') }}">💾 백업/복구</a></li>
-                                <li><hr class="dropdown-divider border-secondary"></li>
-                                <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}">로그아웃</a></li>
-                            </ul>
-                        </li>
-                    {% else %}
-                        <li class="nav-item"><a class="nav-link text-warning fw-bold" href="{{ url_for('login') }}">관리자 로그인</a></li>
-                    {% endif %}
-                </ul>
-            </div>
+        {% if logged_in %}
+          <li class="nav-item"><a class="nav-link" style="color: #d8b4fe;" href="{{ url_for('career') }}">🎓 진로 탐색</a></li>
+          <li class="nav-item"><a class="nav-link text-info" href="{{ url_for('add') }}">활동 추가</a></li>
+          <li class="nav-item"><a class="nav-link text-warning" href="{{ url_for('settings') }}">⚙️ AI 설정</a></li>
+          <li class="nav-item"><a class="nav-link text-success" href="{{ url_for('backup_page') }}">💾 백업관리</a></li>
+          <li class="nav-item"><a class="nav-link text-danger" href="{{ url_for('logout') }}">로그아웃</a></li>
+        {% else %}
+          <li class="nav-item border-start border-secondary mx-2 d-none d-lg-block"></li>
+          <li class="nav-item"><a class="nav-link text-secondary" href="{{ url_for('login') }}">관리자 로그인</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container mb-5">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-    </nav>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
 
-    <!-- 메인 컨텐츠 영역 -->
-    <div class="container pb-5">
-        <!-- 알림 메시지 -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+  {% block content %}{% endblock %}
+</div>
 
-        {% block content %}{% endblock %}
+<footer>
+  <div class="container text-center">
+    <p class="text-white fw-bold mb-1">My AI Portfolio</p>
+    <p class="text-secondary small mb-3">
+      Built with Flask, Python, and Groq AI. <br>
+      Copyright © 2025. All rights reserved.
+    </p>
+    <div class="d-flex justify-content-center gap-4 small">
+      <a href="tel:010-3814-1729" class="text-secondary text-decoration-none">📞 010-3814-1729</a>
+      <a href="mailto:kywksj200@naver.com" class="text-secondary text-decoration-none">📧 kywksj200@naver.com</a>
     </div>
+  </div>
+</footer>
 
-    <!-- 푸터 -->
-    <footer>
-        <div class="container text-center">
-            <p class="text-white fw-bold mb-1">My AI Portfolio</p>
-            <p class="text-secondary small mb-3">
-                Built with Flask, Python, and Groq AI. <br>
-                Copyright © 2025. All rights reserved.
+<div class="modal fade" id="helpModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content card-dark border-secondary">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title text-white fw-bold">🤖 AI Portfolio 사용 가이드</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-secondary">
+        <div class="row g-4">
+          <div class="col-md-6">
+            <h6 class="text-info fw-bold mb-2">🔐 1. 관리자 로그인 (필수)</h6>
+            <p class="small keep-all lh-base">
+              우측 상단의 <strong>'관리자 로그인'</strong> 버튼을 눌러 로그인을 완료해야 합니다. 
+              로그인을 해야만 활동을 추가/수정할 수 있으며, 비로그인 상태에서는 포트폴리오 조회만 가능합니다.
             </p>
-            <div class="d-flex justify-content-center gap-4 small">
-                <a href="tel:010-3814-1729" class="text-secondary text-decoration-none hover-white">📞 010-3814-1729</a>
-                <a href="mailto:kywksj200@naver.com" class="text-secondary text-decoration-none hover-white">📧 kywksj200@naver.com</a>
-            </div>
+          </div>
+          <div class="col-md-6">
+            <h6 class="text-info fw-bold mb-2">📝 2. 활동 기록 및 관리</h6>
+            <p class="small keep-all lh-base">
+              <strong>[활동 추가]</strong> 메뉴에서 프로젝트, 인턴, 수상 경력 등을 상세히 기록하세요. 
+              기술 스택은 태그 방식으로 여러 개 입력 가능하며, 깃허브나 노션 등 증빙 링크를 첨부하면 신뢰도가 높아집니다.
+            </p>
+          </div>
+          <div class="col-md-6">
+            <h6 class="text-warning fw-bold mb-2">🧠 3. AI 학습 및 페르소나 설정</h6>
+            <p class="small keep-all lh-base">
+              <strong>[⚙️ AI 설정]</strong> 메뉴에서 본인의 전공, 핵심 강점, 커리어 목표를 AI에게 가르치세요. 
+              "자신감 있게 써줘", "수치를 강조해줘" 같은 구체적인 지시를 내리면 AI가 그에 맞춰 글을 작성합니다.
+            </p>
+          </div>
+          <div class="col-md-6">
+            <h6 class="text-success fw-bold mb-2">🚀 4. AI 진로 탐색 & 문서 생성</h6>
+            <p class="small keep-all lh-base">
+              새로 추가된 <strong>[🎓 진로 탐색]</strong> 메뉴를 통해 내 전공으로 지원 가능한 직무를 찾아보세요. 
+              직무를 선택하면 <strong>[이력서], [자소서], [합격 분석]</strong> 도구들이 그 직무에 맞춰 초안을 생성해줍니다.
+            </p>
+          </div>
         </div>
-    </footer>
-
-    <!-- 도움말 모달 (사용자 코드 유지) -->
-    <div class="modal fade" id="helpModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content card-dark border-secondary">
-                <div class="modal-header border-secondary">
-                    <h5 class="modal-title text-white fw-bold">🤖 AI Portfolio 사용 가이드</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body text-secondary">
-                    <div class="row g-4">
-                        <div class="col-md-6">
-                            <h6 class="text-info fw-bold mb-2">🔐 1. 관리자 로그인</h6>
-                            <p class="small keep-all">활동을 추가하거나 AI 분석을 실행하려면 먼저 로그인이 필요합니다.</p>
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="text-info fw-bold mb-2">📝 2. 활동 기록</h6>
-                            <p class="small keep-all">프로젝트, 인턴 경험을 상세히 기록하세요. 별점(중요도)을 매기면 AI가 중요하게 다룹니다.</p>
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="text-warning fw-bold mb-2">🧠 3. AI 학습</h6>
-                            <p class="small keep-all">[설정] 메뉴에서 본인의 전공과 강점을 입력하면 AI의 답변 품질이 올라갑니다.</p>
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="text-success fw-bold mb-2">🚀 4. 문서 생성</h6>
-                            <p class="small keep-all">진로 탐색 후 이력서와 자소서 초안을 생성해보세요.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer border-secondary justify-content-between">
-                    <div class="form-check">
-                        <input class="form-check-input bg-dark border-secondary" type="checkbox" id="dontShowToday">
-                        <label class="form-check-label text-secondary small" for="dontShowToday">오늘 하루 보지 않기</label>
-                    </div>
-                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">닫기</button>
-                </div>
-            </div>
+        <hr class="border-secondary my-4">
+        <p class="small text-center mb-0 keep-all text-white-50">
+          💡 <strong>Tip:</strong> 데이터는 안전한 클라우드 DB에 저장되지만, 중요한 정보는 <strong>[💾 백업]</strong> 메뉴에서 엑셀 파일로 다운로드해 두는 것을 권장합니다.
+        </p>
+      </div>
+      
+      <div class="modal-footer border-secondary justify-content-between">
+        <div class="form-check">
+          <input class="form-check-input bg-dark border-secondary" type="checkbox" id="dontShowToday">
+          <label class="form-check-label text-secondary small" for="dontShowToday">
+            오늘 하루 보지 않기
+          </label>
         </div>
+        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">닫기</button>
+      </div>
     </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  function hideLoading() {
+      document.getElementById('loading-overlay').style.display = 'none';
+  }
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- 쿠키 및 모달 제어 스크립트 -->
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const helpModalEl = document.getElementById('helpModal');
-            if(helpModalEl) {
-                const helpModal = new bootstrap.Modal(helpModalEl);
-                const dontShowCheckbox = document.getElementById('dontShowToday');
+  document.addEventListener("DOMContentLoaded", function() {
+    const overlay = document.getElementById('loading-overlay');
+    const closeBtn = document.getElementById('loading-close-btn');
 
-                function getCookie(name) {
-                    const value = `; ${document.cookie}`;
-                    const parts = value.split(`; ${name}=`);
-                    if (parts.length === 2) return parts.pop().split(';').shift();
-                }
+    document.querySelectorAll('form').forEach(form => {
+      if(!form.action.includes('login') && !form.enctype.includes('multipart')) {
+          form.addEventListener('submit', function() {
+              overlay.style.display = 'flex';
+              setTimeout(() => {
+                  closeBtn.style.display = 'block';
+              }, 5000);
+          });
+      }
+    });
 
-                function setCookie(name, value, days) {
-                    let expires = "";
-                    if (days) {
-                        const date = new Date();
-                        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-                        expires = "; expires=" + date.toUTCString();
-                    }
-                    document.cookie = name + "=" + (value || "") + expires + "; path=/";
-                }
+    const helpModalEl = document.getElementById('helpModal');
+    const helpModal = new bootstrap.Modal(helpModalEl);
+    const dontShowCheckbox = document.getElementById('dontShowToday');
 
-                const hasSeenGuide = localStorage.getItem('hasSeenGuide');
-                const hideCookie = getCookie('hideHelpModal');
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+    }
 
-                // 가이드 모달 띄우기 조건
-                if (!hasSeenGuide && !hideCookie) {
-                    helpModal.show();
-                    localStorage.setItem('hasSeenGuide', 'true');
-                }
+    function setCookie(name, value, days) {
+      let expires = "";
+      if (days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = "; expires=" + date.toUTCString();
+      }
+      document.cookie = name + "=" + (value || "") + expires + "; path=/";
+    }
 
-                helpModalEl.addEventListener('hide.bs.modal', function () {
-                    if (dontShowCheckbox && dontShowCheckbox.checked) {
-                        setCookie('hideHelpModal', 'true', 1);
-                    }
-                });
-            }
-        });
-    </script>
+    const hasSeenGuide = localStorage.getItem('hasSeenGuide');
+    const hideCookie = getCookie('hideHelpModal');
+
+    if (!hasSeenGuide && !hideCookie) {
+      helpModal.show();
+      localStorage.setItem('hasSeenGuide', 'true');
+    }
+
+    helpModalEl.addEventListener('hide.bs.modal', function () {
+      if (dontShowCheckbox.checked) {
+        setCookie('hideHelpModal', 'true', 1);
+      }
+    });
+  });
+</script>
 </body>
 </html>
