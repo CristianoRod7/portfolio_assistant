@@ -1156,7 +1156,7 @@ import os
 from flask import request, redirect, session, flash
 
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
-NAVER_SECRET_KEY = os.getenv("NAVER_SECRET_KEY")
+NAVER_CLIENT_SECRET = os.getenv("NAVER_SECRET_KEY")
 NAVER_REDIRECT_URI = os.getenv("NAVER_REDIRECT_URI")
 
 @app.route("/login/naver")
@@ -1181,7 +1181,7 @@ def naver_callback():
     data = {
         "grant_type": "authorization_code",
         "client_id": NAVER_CLIENT_ID,
-        "client_secret": NAVER_SECRET_KEY,
+        "client_secret": NAVER_CLIENT_SECRET,
         "code": code,
         "state": state,
     }
