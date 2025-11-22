@@ -9,7 +9,8 @@ from psycopg2.extras import RealDictCursor
 from datetime import datetime
 import markdown
 from functools import wraps
-
+import requests
+from urllib.parse import urlencode
 from flask import (
     Flask,
     render_template,
@@ -1228,12 +1229,239 @@ def admin_dashboard():
         top_users=top_users
     )
 
+from urllib.parse import urlencode
+import requests
+
+def social_login_process(email: str):
+    """
+    공통 소셜 로그인 처리:
+    - email 기준으로 users에 없으면 자동 가입
+    - profile도 같이 생성
+    - 세션에 로그인 상태 저장
+    """
+    conn = get_db_connection()
+    if not conn:
+        return "DB 연결 오류", 500
+    cur = conn.cursor()
+
+    # 1) 기존 사용자 조회
+    cur.execute("SELECT * FROM users WHERE email = %s", (email,))
+    user = cur.fetchone()
+
+    # 2) 없으면 신규 생성
+    if not user:
+        cur.execute(
+            """
+            INSERT INTO users (email, password_hash, created_at)
+            VALUES (%s, %s, %s)
+            RETURNING id;
+            """,
+            (
+                email,
+                "",  # 소셜 로그인은 비밀번호 없음
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            ),
+        )
+        user_id = cur.fetchone()["id"]
+
+        # profile 기본 레코드 생성
+        cur.execute("INSERT INTO profile (user_id) VALUES (%s)", (user_id,))
+        conn.commit()
+    else:
+        user_id = user["id"]
+
+    cur.close()
+    conn.close()
+
+    # 3) 세션 로그인 처리
+    session["logged_in"] = True
+    session["is_admin"] = False
+    session["user_id"] = user_id
+
+    flash("소셜 계정으로 로그인되었습니다.", "success")
+    return redirect(url_for("index"))
 
 # =========================
-# 8. 앱 시작시 DB 초기화 (한 번만)
+# 네이버 로그인
 # =========================
 
+@app.route("/login/naver")
+def naver_login():
+    """
+    네이버 로그인 페이지로 이동
+    """
+    query = urlencode({
+        "response_type": "code",
+        "client_id": os.getenv("NAVER_CLIENT_ID"),
+        "redirect_uri": os.getenv("NAVER_REDIRECT_URI"),
+        "state": "NAVER_LOGIN_STATE_123"   # 아무 문자열 가능
+    })
 
+    return redirect("https://nid.naver.com/oauth2.0/authorize?" + query)
+
+
+@app.route("/oauth/naver/callback")
+def naver_callback():
+    """
+    네이버 로그인 콜백
+    """
+    code = request.args.get("code")
+    state = request.args.get("state", "NAVER_LOGIN_STATE_123")
+
+    # 1) Access Token 요청
+    token_res = requests.post(
+        "https://nid.naver.com/oauth2.0/token",
+        data={
+            "grant_type": "authorization_code",
+            "client_id": os.getenv("NAVER_CLIENT_ID"),
+            "client_secret": os.getenv("NAVER_CLIENT_SECRET"),
+            "redirect_uri": os.getenv("NAVER_REDIRECT_URI"),
+            "code": code,
+            "state": state,
+        }
+    ).json()
+
+    access_token = token_res.get("access_token")
+    if not access_token:
+        return "네이버 토큰 발급 오류: " + str(token_res)
+
+    # 2) 유저 정보 가져오기
+    profile_res = requests.get(
+        "https://openapi.naver.com/v1/nid/me",
+        headers={"Authorization": f"Bearer {access_token}"},
+    ).json()
+
+    if profile_res.get("resultcode") != "00":
+        return "네이버 프로필 오류: " + str(profile_res)
+
+    profile = profile_res["response"]
+    email = profile.get("email")
+
+    if not email:
+        # 네이버는 이메일 제공 동의를 안 하면 없음
+        email = f"naver_user_{profile['id']}@noemail.com"
+
+    # 3) 공통 처리 (자동 가입 및 로그인)
+    return social_login_process(email)
+
+
+# =========================
+# 카카오 로그인
+# =========================
+
+# =========================
+# 카카오 로그인
+# =========================
+
+@app.route("/login/kakao")
+def kakao_login():
+    """
+    카카오 로그인 페이지로 이동
+    """
+    query = urlencode({
+        "client_id": KAKAO_REST_KEY,
+        "redirect_uri": KAKAO_REDIRECT_URI,
+        "response_type": "code",
+    })
+    return redirect("https://kauth.kakao.com/oauth/authorize?" + query)
+
+
+@app.route("/oauth/kakao/callback")
+def kakao_callback():
+    """
+    카카오 로그인 콜백
+    """
+    code = request.args.get("code")
+
+    # 1) 토큰 발급
+    token_res = requests.post(
+        "https://kauth.kakao.com/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+            "client_id": KAKAO_REST_KEY,
+            "redirect_uri": KAKAO_REDIRECT_URI,
+            "code": code,
+            # Kakao 앱에서 client_secret 사용 중일 때만 필요
+            "client_secret": KAKAO_SECRET_KEY or "",
+        }
+    ).json()
+
+    access_token = token_res.get("access_token")
+    if not access_token:
+        return "카카오 토큰 발급 오류: " + str(token_res), 500
+
+    # 2) 사용자 정보 조회
+    profile = requests.get(
+        "https://kapi.kakao.com/v2/user/me",
+        headers={"Authorization": f"Bearer {access_token}"}
+    ).json()
+
+    kakao_account = profile.get("kakao_account", {})
+    email = kakao_account.get("email")
+
+    # 이메일 제공 동의 안 했을 때 대비
+    if not email:
+        email = f"kakao_user_{profile.get('id')}@noemail.com"
+
+    # 3) 공통 처리 (자동 가입 + 로그인)
+    return social_login_process(email)
+
+
+# =========================
+# 구글 로그인
+# =========================
+
+@app.route("/login/google")
+def google_login():
+    """
+    구글 로그인 페이지로 이동
+    """
+    query = urlencode({
+        "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+        "redirect_uri": os.getenv("GOOGLE_REDIRECT_URI"),
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "offline",
+        "prompt": "consent",
+    })
+    return redirect("https://accounts.google.com/o/oauth2/v2/auth?" + query)
+
+
+@app.route("/oauth/google/callback")
+def google_callback():
+    """
+    구글 로그인 콜백
+    """
+    code = request.args.get("code")
+
+    # 1) 토큰 교환
+    token_res = requests.post(
+        "https://oauth2.googleapis.com/token",
+        data={
+            "code": code,
+            "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+            "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
+            "redirect_uri": os.getenv("GOOGLE_REDIRECT_URI"),
+            "grant_type": "authorization_code",
+        }
+    ).json()
+
+    access_token = token_res.get("access_token")
+    if not access_token:
+        return "구글 토큰 발급 오류: " + str(token_res), 500
+
+    # 2) 사용자 정보 조회
+    user_info = requests.get(
+        "https://www.googleapis.com/oauth2/v3/userinfo",
+        headers={"Authorization": f"Bearer {access_token}"}
+    ).json()
+
+    email = user_info.get("email")
+    if not email:
+        email = f"google_user_{user_info.get('sub')}@noemail.com"
+
+    # 3) 공통 처리 (자동 가입 + 로그인)
+    return social_login_process(email)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)

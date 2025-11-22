@@ -117,8 +117,62 @@
         <a href="{{ url_for('login') }}" class="text-secondary text-decoration-none">
           일반 사용자 로그인
         </a>
-        <a href="/login/google" class="social-btn google">Google 로그인</a>
-        <a href="/login/kakao" class="social-btn kakao">카카오 로그인</a>
+        <!-- 소셜 로그인 전체 박스 -->
+<div class="mt-4 d-flex flex-column gap-2">
+
+    <!-- 카카오 -->
+    <a href="{{ url_for('kakao_login') }}"
+       style="
+            display:block;
+            width:100%;
+            background:#FEE500;
+            color:#3A1D1D;
+            font-weight:600;
+            padding:14px 0;
+            border-radius:12px;
+            text-align:center;
+            font-size:16px;">
+        <img src="https://developers.kakao.com/assets/img/about/logos/kakaotalk_sharing_btn_small.png"
+             width="20" style="vertical-align:middle; margin-right:8px;">
+        카카오톡으로 계속하기
+    </a>
+
+    <!-- 네이버 -->
+    <a href="{{ url_for('naver_login') }}"
+       style="
+            display:block;
+            width:100%;
+            background:#03C75A;
+            color:#ffffff;
+            font-weight:700;
+            padding:14px 0;
+            border-radius:12px;
+            text-align:center;
+            font-size:16px;">
+        <span style="font-size:20px; margin-right:8px;">N</span>
+        네이버로 계속하기
+    </a>
+
+    <!-- 구글 -->
+    <a href="{{ url_for('google_login') }}"
+       style="
+            display:block;
+            width:100%;
+            background:#ffffff;
+            color:#000000;
+            font-weight:600;
+            padding:14px 0;
+            border-radius:12px;
+            border:1px solid #ddd;
+            text-align:center;
+            font-size:16px;">
+        <img src="https://www.google.com/favicon.ico"
+             width="20" style="vertical-align:middle; margin-right:8px;">
+        구글로 계속하기
+    </a>
+
+</div>
+
 
       {% endif %}
     </div>
