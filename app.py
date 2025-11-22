@@ -61,6 +61,18 @@ MAJORS = {
 # =========================
 # 2. DB 유틸리티 (PostgreSQL)
 # =========================
+db_initialized = False
+
+@app.before_request
+def initialize_db_once():
+    global db_initialized
+    if not db_initialized:
+        try:
+            init_db()
+            db_initialized = True
+            print("DB initialized once")
+        except Exception as e:
+            print("DB init error:", e)
 
 def get_db_connection():
     db_url = os.getenv("DATABASE_URL")
@@ -1054,12 +1066,6 @@ def admin_dashboard():
 # 8. 앱 시작시 DB 초기화 (한 번만)
 # =========================
 
-@app.before_serving
-def initialize():
-    try:
-        init_db()
-    except Exception as e:
-        print("DB init error:", e)
 
 
 if __name__ == "__main__":
