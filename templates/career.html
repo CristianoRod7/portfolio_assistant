@@ -1,19 +1,51 @@
 {% extends "base.html" %}
 
 {% block content %}
+<style>
+    #loadingOverlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 9999;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: white;
+    }
+</style>
+
+<script>
+    function showLoading() {
+        // 폼 유효성 검사 (빈 값이면 로딩 안 띄움)
+        const form = document.querySelector('form');
+        if (form.checkValidity()) {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+    }
+</script>
+
+<div id="loadingOverlay">
+    <div class="spinner-border text-info" style="width: 3rem; height: 3rem;" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <h4 class="mt-3 fw-bold">🔍 구글 검색 및 AI 분석 중...</h4>
+    <p class="text-white-50">잠시만 기다려 주세요 (최대 10초)</p>
+</div>
+
 <div class="row justify-content-center">
     <div class="col-lg-8">
-        <!-- 카드: 입력 폼 -->
         <div class="card card-dark border-0 mb-4">
             <div class="card-body p-5">
                 <h2 class="fw-bold mb-2 text-white">🎓 학과 기반 직무 탐색</h2>
                 <p class="text-secondary mb-4">
                     우리 대학 전공으로 어떤 기업, 어떤 직무에 갈 수 있을까요?<br>
-                    AI가 전공 역량과 기업의 필요 역량을 매칭해 드립니다.
+                    AI가 실시간 정보와 전공 역량을 매칭해 드립니다.
                 </p>
 
-                <form method="POST" action="{{ url_for('career') }}">
-                    <!-- 1. 학과 선택 -->
+                <form method="POST" action="{{ url_for('career') }}" onsubmit="showLoading()">
+                    
                     <div class="mb-4">
                         <label class="form-label text-info fw-bold">1. 본인의 전공을 선택하세요</label>
                         <select class="form-select bg-dark text-white border-secondary p-3" name="major" required>
@@ -30,52 +62,45 @@
                         </select>
                     </div>
 
-                    <!-- 2. 기업 입력 (자동완성 적용) -->
                     <div class="mb-4">
                         <label class="form-label text-success fw-bold">2. 희망하는 기업명을 입력하세요</label>
-                        
-                        <!-- ▼▼▼ [수정됨] 리스트 연결 및 placeholder 변경 ▼▼▼ -->
                         <input type="text" name="company" class="form-control bg-dark text-white border-secondary p-3" 
                                placeholder="기업명을 입력하거나 클릭하여 선택하세요" 
                                value="{{ sel_company if sel_company else '' }}" 
                                list="companyOptions" autocomplete="off" required>
                         
-                        <!-- 자동완성 목록 데이터 -->
                         <datalist id="companyOptions">
                             {% for company in company_options %}
                                 <option value="{{ company }}">
                             {% endfor %}
                         </datalist>
-                        <!-- ▲▲▲ -->
                     </div>
 
                     <div class="d-grid">
                         <button type="submit" class="btn btn-ai btn-lg shadow-lg">
-                            🚀 직무 분석 시작하기
+                            🚀 실시간 분석 시작하기
                         </button>
                     </div>
                 </form>
             </div>
         </div>
 
-        <!-- 카드: 결과 표시 (AI 분석 완료 시에만 표시됨) -->
         {% if result %}
         <div class="card card-dark border-0 animate-slide-up">
             <div class="card-header border-secondary bg-transparent py-3">
                 <h5 class="mb-0 text-white">
                     <span class="text-info fw-bold">{{ sel_major }}</span> 전공 
                     <i class="bi bi-arrow-right mx-2">→</i> 
-                    <span class="text-success fw-bold">{{ sel_company }}</span> 매칭 결과
+                    <span class="text-success fw-bold">{{ sel_company }}</span> 분석 결과
                 </h5>
             </div>
             <div class="card-body p-4">
-                <!-- AI가 써준 마크다운 내용이 여기 들어감 -->
-                <div class="markdown-body">
+                <div class="ai-result">
                     {{ result | safe }}
                 </div>
                 
                 <div class="mt-4 text-end">
-                    <a href="{{ url_for('career') }}" class="btn btn-outline-secondary btn-sm">다른 기업 검색하기</a>
+                    <a href="{{ url_for('career') }}" class="btn btn-outline-secondary btn-sm">초기화 / 다시 검색</a>
                 </div>
             </div>
         </div>

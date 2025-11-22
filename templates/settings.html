@@ -27,12 +27,23 @@
             <input type="text" name="name" class="form-control bg-dark text-white border-secondary" 
                    value="{{ profile.name or '' }}" placeholder="예) 홍길동">
           </div>
+          
           <div class="col-md-6">
-            <label class="form-label text-info small">전공 / 주특기</label>
-            <input type="text" name="major" class="form-control bg-dark text-white border-secondary" 
-                   value="{{ profile.major or '' }}" placeholder="예) 컴퓨터공학, 백엔드 개발">
+            <label class="form-label text-info small">전공 (Major)</label>
+            <select name="major" class="form-select bg-dark text-white border-secondary">
+              <option value="">전공을 선택하세요</option>
+              {% for category, major_list in majors.items() %}
+                <optgroup label="{{ category }}">
+                  {% for m in major_list %}
+                    <option value="{{ m }}" {% if profile.major == m %}selected{% endif %}>
+                      {{ m }}
+                    </option>
+                  {% endfor %}
+                </optgroup>
+              {% endfor %}
+            </select>
           </div>
-        </div>
+          </div>
 
         <div class="mb-4">
           <label class="form-label text-info small">커리어 목표 (Career Goal)</label>

@@ -1,6 +1,22 @@
 {% extends "base.html" %}
 {% block content %}
 
+<style>
+  /* 별점 스타일 */
+  .star-rating .bi {
+    font-size: 1.5rem;
+    color: #6c757d; /* 기본 회색 */
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .star-rating .bi.active {
+    color: #ffc107; /* 활성화된 노란색 */
+  }
+  .star-rating .bi:hover {
+    color: #ffdb72; /* 호버 시 연한 노란색 */
+  }
+</style>
+
 <div class="row justify-content-center">
   <div class="col-lg-8">
     
@@ -9,10 +25,9 @@
       <h2 class="h4 mb-0 fw-bold">{% if is_edit %}활동 수정{% else %}새 활동 추가{% endif %}</h2>
     </div>
 
-    <div class="card card-dark p-4 p-md-5">
-      <form method="post" id="activityForm">
+    <div class="card card-dark p-4 p-md-5 animate-slide-up">
+      <form method="post" id="activityForm" onsubmit="showLoading()">
         
-        <!-- 카테고리 & 제목 -->
         <div class="row g-3 mb-4">
           <div class="col-md-4">
             <label class="form-label text-secondary small">카테고리</label>
@@ -41,14 +56,12 @@
           </div>
         </div>
 
-        <!-- 설명 -->
         <div class="mb-4">
           <label class="form-label text-secondary small">상세 내용</label>
           <textarea name="description" rows="6" class="form-control bg-dark text-white border-secondary"
                     placeholder="구체적으로 어떤 역할을 맡았고, 어떤 성과를 냈나요? (AI 분석의 핵심이 됩니다)">{{ exp.description if exp else '' }}</textarea>
         </div>
 
-        <!-- 날짜 & 시간 -->
         <div class="row g-3 mb-4">
           <div class="col-md-4">
             <label class="form-label text-secondary small">시작일</label>
@@ -60,22 +73,28 @@
             <input type="date" name="end_date" class="form-control bg-dark text-white border-secondary"
                    value="{{ exp.end_date if exp else '' }}">
           </div>
+          
           <div class="col-md-4">
-            <label class="form-label text-secondary small">투입 시간 (Hours)</label>
-            <input type="number" name="hours" class="form-control bg-dark text-white border-secondary" 
-                   placeholder="0" min="0" 
-                   value="{{ exp.hours if exp else '' }}">
+            <label class="form-label text-warning small fw-bold">나만의 중요도 (Priority)</label>
+            <div class="d-flex align-items-center star-rating mt-1" id="starContainer">
+                <i class="bi bi-star-fill me-1" data-value="1"></i>
+                <i class="bi bi-star-fill me-1" data-value="2"></i>
+                <i class="bi bi-star-fill me-1" data-value="3"></i>
+                <i class="bi bi-star-fill me-1" data-value="4"></i>
+                <i class="bi bi-star-fill me-1" data-value="5"></i>
+            </div>
+            <input type="hidden" name="hours" id="ratingInput" value="{{ exp.hours if exp else '3' }}">
+            <div class="form-text text-secondary" style="font-size: 0.7rem;">
+                * 포트폴리오에서의 중요도를 5점 만점으로 평가
+            </div>
           </div>
-        </div>
+          </div>
 
-        <!-- ▼▼▼ 기술 스택 (멀티 태그 입력) ▼▼▼ -->
         <div class="mb-4">
           <label class="form-label text-secondary small">사용 기술 / 키워드</label>
           
-          <!-- 태그들이 표시될 공간 -->
           <div id="tagsContainer" class="d-flex flex-wrap gap-2 mb-2"></div>
           
-          <!-- 실제 입력을 받는 visible input -->
           <div class="input-group">
             <input type="text" id="skillInput" list="techOptions"
                    class="form-control bg-dark text-white border-secondary" 
@@ -83,10 +102,8 @@
             <button class="btn btn-outline-secondary" type="button" id="addSkillBtn">추가</button>
           </div>
 
-          <!-- 서버로 전송될 진짜 데이터 (숨겨짐) -->
           <input type="hidden" name="skills" id="realSkillsInput" value="{{ exp.skills if exp else '' }}">
 
-          <!-- 추천 목록 -->
           <datalist id="techOptions">
             <option value="Python"><option value="Java"><option value="JavaScript">
             <option value="TypeScript"><option value="React"><option value="Vue.js">
@@ -100,9 +117,7 @@
             * 목록에서 선택하거나 직접 입력 후 <strong>Enter</strong>를 누르세요.
           </div>
         </div>
-        <!-- ▲▲▲ -->
 
-        <!-- 증빙 링크 -->
         <div class="mb-5">
           <label class="form-label text-secondary small">🔗 증빙 자료 링크</label>
           <input type="url" name="link" class="form-control bg-dark text-white border-secondary" 
@@ -125,35 +140,64 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
+  
+  // === [1] 별점 로직 ===
+  const starContainer = document.getElementById('starContainer');
+  const ratingInput = document.getElementById('ratingInput');
+  const stars = starContainer.querySelectorAll('i');
+
+  function updateStars(value) {
+    stars.forEach(star => {
+      const starVal = parseInt(star.getAttribute('data-value'));
+      if (starVal <= value) {
+        star.classList.add('active');
+        star.classList.remove('bi-star');
+        star.classList.add('bi-star-fill');
+      } else {
+        star.classList.remove('active');
+        star.classList.remove('bi-star-fill');
+        star.classList.add('bi-star');
+      }
+    });
+  }
+
+  // 초기값 설정
+  updateStars(parseInt(ratingInput.value || 3));
+
+  // 클릭 이벤트 연결
+  stars.forEach(star => {
+    star.addEventListener('click', function() {
+      const val = this.getAttribute('data-value');
+      ratingInput.value = val;
+      updateStars(val);
+    });
+  });
+
+
+  // === [2] 태그(기술스택) 로직 ===
   const skillInput = document.getElementById('skillInput');
   const tagsContainer = document.getElementById('tagsContainer');
   const realInput = document.getElementById('realSkillsInput');
   const addBtn = document.getElementById('addSkillBtn');
 
-  // 초기 데이터 로드 (수정 모드일 때)
   let skills = [];
   if (realInput.value) {
-    // 콤마로 분리해서 배열로 만듦 (빈값 제거)
     skills = realInput.value.split(',').map(s => s.trim()).filter(s => s);
     renderTags();
   }
 
-  // 태그 추가 로직
   function addSkill() {
     const val = skillInput.value.trim();
     if (!val) return;
-    
-    // 중복 체크
     if (!skills.includes(val)) {
       skills.push(val);
       updateRealInput();
       renderTags();
     }
-    skillInput.value = ''; // 입력창 비우기
+    skillInput.value = ''; 
     skillInput.focus();
   }
 
-  // 화면에 태그 그리기
   function renderTags() {
     tagsContainer.innerHTML = '';
     skills.forEach((skill, index) => {
@@ -167,37 +211,24 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
 
-  // 태그 삭제 (전역 함수로 등록해야 onclick에서 찾음)
   window.removeSkill = function(index) {
     skills.splice(index, 1);
     updateRealInput();
     renderTags();
   };
 
-  // 숨겨진 input 업데이트 (DB 전송용)
   function updateRealInput() {
     realInput.value = skills.join(', ');
   }
 
-  // 이벤트 리스너: 엔터키
   skillInput.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
-      e.preventDefault(); // 폼 제출 방지
+      e.preventDefault(); 
       addSkill();
     }
   });
 
-  // 이벤트 리스너: 추가 버튼
   addBtn.addEventListener('click', addSkill);
-  
-  // 이벤트 리스너: datalist 선택 시 (input 이벤트 활용)
-  // 사용자가 목록에서 클릭하면 바로 추가되게 하려면 아래 주석 해제
-  /*
-  skillInput.addEventListener('input', function(e) {
-     // datalist 옵션 중에 현재 입력값과 일치하는 게 있으면 자동 추가? 
-     // (UX 호불호가 있어서 일단 Enter 치는 방식으로 통일함)
-  });
-  */
 });
 </script>
 

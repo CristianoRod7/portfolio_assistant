@@ -146,6 +146,33 @@
     footer a:hover { color: #fff !important; text-decoration: underline !important; }
     
     .keep-all { word-break: keep-all; }
+
+    /* ... 기존 스타일 ... */
+
+        /* [추가] AI 분석 결과용 마크다운 테이블 스타일 */
+        .ai-result table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.95rem;
+        }
+        .ai-result th, .ai-result td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .ai-result th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #333;
+        }
+        .ai-result tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        /* AI 강조 구문 스타일 */
+        .ai-result strong {
+            color: #d63384; /* 핑크색 강조 (원하는 색으로 변경 가능) */
+        }
   </style>
 </head>
 <body>

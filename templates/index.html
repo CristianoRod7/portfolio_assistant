@@ -1,13 +1,11 @@
 {% extends "base.html" %}
 
 {% block content %}
-<!-- Chart.js 라이브러리 추가 -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <div class="row g-4">
-    <!-- 좌측: 현황 및 활동 목록 -->
     <div class="col-lg-8">
-        <!-- 1. 상단: 요약 카드 (Stats) -->
+        
         <div class="row g-3 mb-4">
             <div class="col-md-4">
                 <div class="card card-dark border-0 h-100">
@@ -17,14 +15,25 @@
                     </div>
                 </div>
             </div>
+            
             <div class="col-md-4">
                 <div class="card card-dark border-0 h-100">
                     <div class="card-body p-4">
-                        <h6 class="text-secondary small text-uppercase fw-bold mb-2">Total Hours</h6>
-                        <h2 class="text-white fw-bold mb-0">{{ total_hours }}시간</h2>
+                        <h6 class="text-secondary small text-uppercase fw-bold mb-2">Avg. Priority</h6>
+                        <div class="d-flex align-items-end gap-2">
+                            <h2 class="text-warning fw-bold mb-0">
+                                {% if total_count > 0 %}
+                                    {{ "%.1f"|format(total_hours / total_count) }}
+                                {% else %}
+                                    0.0
+                                {% endif %}
+                            </h2>
+                            <span class="text-secondary mb-1">/ 5.0</span>
+                        </div>
                     </div>
                 </div>
             </div>
+
             <div class="col-md-4">
                 <div class="card card-dark border-0 h-100">
                     <div class="card-body p-4">
@@ -35,7 +44,6 @@
             </div>
         </div>
 
-        <!-- 2. 활동 통계 그래프 섹션 -->
         <div class="card card-dark border-0 mb-4">
             <div class="card-header bg-transparent border-0 pt-4 px-4">
                 <h5 class="text-white fw-bold mb-0">📊 활동 카테고리 통계</h5>
@@ -51,7 +59,6 @@
             </div>
         </div>
 
-        <!-- 3. 활동 목록 리스트 -->
         <div class="card card-dark border-0 mb-4">
             <div class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <div class="d-flex align-items-center gap-3">
@@ -65,7 +72,7 @@
                 
                 <div class="input-group input-group-sm w-auto">
                     <span class="input-group-text bg-dark border-secondary text-secondary">🔍</span>
-                    <input type="text" id="searchInput" class="form-control bg-dark border-secondary text-white" placeholder="활동 검색..." onkeyup="filterExperiences()">
+                    <input type="text" id="searchInput" class="form-control bg-dark border-secondary text-white" placeholder="활동명, 기술태그 검색..." onkeyup="filterExperiences()">
                 </div>
             </div>
             <div class="card-body p-4">
@@ -73,20 +80,33 @@
                     <div class="list-group list-group-flush" id="experienceList">
                         {% for exp in experiences %}
                         <a href="{{ url_for('experience_detail', exp_id=exp.id) }}" class="list-group-item list-group-item-action bg-transparent border-secondary text-white py-3 exp-item">
-                            <div class="d-flex w-100 justify-content-between align-items-center mb-1">
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="badge bg-{{ exp.status_color }} bg-opacity-10 text-{{ exp.status_color }} border border-{{ exp.status_color }} border-opacity-25 rounded-pill px-2 py-1">
-                                        {{ exp.category }}
-                                    </span>
-                                    <h6 class="mb-0 fw-bold text-truncate" style="max-width: 300px;">{{ exp.title }}</h6>
+                            
+                            <div class="d-flex w-100 justify-content-between align-items-start mb-2">
+                                <div>
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <span class="badge bg-{{ exp.status_color }} bg-opacity-10 text-{{ exp.status_color }} border border-{{ exp.status_color }} border-opacity-25 rounded-pill px-2 py-1" style="font-size: 0.75rem;">
+                                            {{ exp.category }}
+                                        </span>
+                                        <div class="text-warning small">
+                                            {% set rating = exp.hours|int %}
+                                            {% for i in range(1, 6) %}
+                                                <i class="bi bi-star{% if i <= rating %}-fill{% endif %}" style="font-size: 0.7rem; opacity: {% if i <= rating %}1{% else %}0.3{% endif %};"></i>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    <h6 class="mb-0 fw-bold text-truncate" style="max-width: 350px;">{{ exp.title }}</h6>
                                 </div>
-                                <small class="text-secondary">{{ exp.start_date }}</small>
+                                <small class="text-secondary text-nowrap">{{ exp.start_date }}</small>
                             </div>
-                            <p class="mb-1 small text-secondary text-truncate">{{ exp.description }}</p>
-                            <div class="mt-2">
+
+                            <p class="mb-2 small text-secondary text-truncate" style="max-width: 90%;">
+                                {{ exp.description }}
+                            </p>
+                            
+                            <div class="d-flex flex-wrap gap-1">
                                 {% if exp.skills %}
                                     {% for skill in exp.skills.split(',') %}
-                                        <span class="badge bg-secondary bg-opacity-25 text-light fw-normal me-1">#{{ skill.strip() }}</span>
+                                        <span class="badge bg-secondary bg-opacity-25 text-light fw-normal border border-secondary border-opacity-25">#{{ skill.strip() }}</span>
                                     {% endfor %}
                                 {% endif %}
                             </div>
@@ -105,9 +125,8 @@
         </div>
     </div>
 
-    <!-- 우측: AI 도구 모음 (사이드바) -->
     <div class="col-lg-4">
-        <div class="card card-dark border-0 sticky-top" style="top: 100px; z-index: 1;">
+        <div class="card card-dark border-0 sticky-top" style="top: 20px; z-index: 1;">
             <div class="card-body p-4">
                 <h6 class="text-secondary small fw-bold mb-3">AI ASSISTANT TOOLS</h6>
                 
@@ -181,6 +200,7 @@ function filterExperiences() {
     const items = list.getElementsByClassName('exp-item');
 
     for (let i = 0; i < items.length; i++) {
+        // 제목, 설명, 기술태그 텍스트 모두 검색 대상에 포함
         const text = items[i].textContent || items[i].innerText;
         if (text.toLowerCase().indexOf(filter) > -1) {
             items[i].style.display = "";
@@ -190,18 +210,15 @@ function filterExperiences() {
     }
 }
 
-// 2. 차트 렌더링 로직 (수정됨: Jinja2 if문 제거 및 안전한 데이터 주입)
+// 2. 차트 렌더링 로직
 document.addEventListener("DOMContentLoaded", function() {
-    // Jinja2 데이터를 자바스크립트 변수로 안전하게 변환 (기본값 빈 배열)
     const rawData = {{ categories | tojson | default('[]') | safe }};
     
-    // 데이터가 있을 때만 차트 생성
     if (rawData && rawData.length > 0) {
         const ctxElement = document.getElementById('categoryChart');
         
         if (ctxElement) {
             const ctx = ctxElement.getContext('2d');
-            
             const labels = rawData.map(item => item.category);
             const data = rawData.map(item => item.cnt);
 
@@ -213,22 +230,11 @@ document.addEventListener("DOMContentLoaded", function() {
                         label: '활동 수',
                         data: data,
                         backgroundColor: [
-                            'rgba(139, 92, 246, 0.6)',
-                            'rgba(59, 130, 246, 0.6)',
-                            'rgba(16, 185, 129, 0.6)',
-                            'rgba(245, 158, 11, 0.6)',
-                            'rgba(239, 68, 68, 0.6)',
-                            'rgba(236, 72, 153, 0.6)'
+                            'rgba(139, 92, 246, 0.6)', 'rgba(59, 130, 246, 0.6)',
+                            'rgba(16, 185, 129, 0.6)', 'rgba(245, 158, 11, 0.6)',
+                            'rgba(239, 68, 68, 0.6)', 'rgba(236, 72, 153, 0.6)'
                         ],
-                        borderColor: [
-                            'rgba(139, 92, 246, 1)',
-                            'rgba(59, 130, 246, 1)',
-                            'rgba(16, 185, 129, 1)',
-                            'rgba(245, 158, 11, 1)',
-                            'rgba(239, 68, 68, 1)',
-                            'rgba(236, 72, 153, 1)'
-                        ],
-                        borderWidth: 1,
+                        borderWidth: 0,
                         borderRadius: 4
                     }]
                 },
@@ -236,12 +242,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            titleColor: '#fff',
-                            bodyColor: '#fff'
-                        }
+                        legend: { display: false }
                     },
                     scales: {
                         y: {
