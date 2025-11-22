@@ -43,6 +43,19 @@
                  href="{{ url_for('settings', user_id=u.id) }}">
                 ⚙️ 설정
               </a>
+              <a class="btn btn-sm btn-dark"
+                 href="{{ url_for('admin_user_timeline', user_id=u.id) }}">
+                📅 타임라인
+              </a>
+              <a class="btn btn-sm btn-outline-light"
+                 href="{{ url_for('admin_user_backup', user_id=u.id) }}">
+                💾 백업/복구
+              </a>
+              <a class="btn btn-sm btn-outline-light"
+                href="{{ url_for('admin_dashboard') }}">
+                📊 대시보드
+              </a>
+
             </div>
           </td>
         </tr>

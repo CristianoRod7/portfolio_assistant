@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card card-dark p-4 mb-4">
+  <h4 class="fw-bold text-white mb-3">
+    🛠 관리자 대시보드
+  </h4>
+  <p class="text-secondary small mb-4">
+    전체 유저와 포트폴리오 활동 현황을 한눈에 보는 관리자 전용 페이지입니다.
+  </p>
+
+  <!-- 상단 요약 카드 3개 -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card card-dark p-3 h-100">
+        <p class="text-secondary small mb-1">전체 유저 수</p>
+        <h3 class="fw-bold text-white mb-0">{{ total_users }}</h3>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card card-dark p-3 h-100">
+        <p class="text-secondary small mb-1">전체 활동 수</p>
+        <h3 class="fw-bold text-white mb-0">{{ total_experiences }}</h3>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card card-dark p-3 h-100">
+        <p class="text-secondary small mb-1">활동이 있는 유저 수</p>
+        <h3 class="fw-bold text-white mb-0">{{ active_users }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- 전공 분포 -->
+  <div class="card card-dark p-3 mb-4">
+    <h5 class="fw-bold text-white mb-2">🎓 전공별 유저 분포 (Top 5)</h5>
+    {% if majors %}
+      <div class="table-responsive">
+        <table class="table table-dark table-sm align-middle mb-0">
+          <thead class="table-secondary text-dark">
+            <tr>
+              <th>전공</th>
+              <th style="width:120px;">유저 수</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in majors %}
+            <tr>
+              <td>{{ m.major }}</td>
+              <td>{{ m.cnt }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-secondary small mb-0">프로필 정보가 없습니다.</p>
+    {% endif %}
+  </div>
+
+  <!-- 아래 2열: 최근 가입 / 활동 많이 한 유저 -->
+  <div class="row g-4">
+    <div class="col-md-6">
+      <div class="card card-dark p-3 h-100">
+        <h5 class="fw-bold text-white mb-2">🕒 최근 가입 유저</h5>
+        {% if recent_users %}
+          <div class="table-responsive">
+            <table class="table table-dark table-sm align-middle mb-0">
+              <thead class="table-secondary text-dark">
+                <tr>
+                  <th style="width:60px;">ID</th>
+                  <th>이메일</th>
+                  <th style="width:140px;">가입일</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for u in recent_users %}
+                <tr>
+                  <td>{{ u.id }}</td>
+                  <td>{{ u.email }}</td>
+                  <td>{{ u.created_at }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-secondary small mb-0">가입된 유저가 없습니다.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card card-dark p-3 h-100">
+        <h5 class="fw-bold text-white mb-2">🔥 활동 많은 유저</h5>
+        {% if top_users %}
+          <div class="table-responsive">
+            <table class="table table-dark table-sm align-middle mb-0">
+              <thead class="table-secondary text-dark">
+                <tr>
+                  <th style="width:60px;">ID</th>
+                  <th>이메일</th>
+                  <th style="width:120px;">활동 수</th>
+                  <th style="width:120px;">관리</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for u in top_users %}
+                <tr>
+                  <td>{{ u.id }}</td>
+                  <td>{{ u.email }}</td>
+                  <td>{{ u.exp_count }}</td>
+                  <td>
+                    <a href="{{ url_for('admin_user_profile', user_id=u.id) }}" class="btn btn-sm btn-outline-light">
+                      보기
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-secondary small mb-0">활동 데이터가 없습니다.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="text-center mt-3 d-flex justify-content-center gap-3">
+  <a href="{{ url_for('admin_user_list') }}" class="btn btn-outline-light">
+    👥 유저 목록
+  </a>
+  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+    ← 메인으로
+  </a>
+</div>
+
+{% endblock %}

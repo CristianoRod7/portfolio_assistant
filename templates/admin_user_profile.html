@@ -63,6 +63,9 @@
   <a href="{{ url_for('resume', user_id=user_info.id) }}" class="btn btn-warning">📝 이력서 생성</a>
   <a href="{{ url_for('analyze', user_id=user_info.id) }}" class="btn btn-info">🔍 AI 분석</a>
   <a href="{{ url_for('settings', user_id=user_info.id) }}" class="btn btn-secondary">⚙️ 프로필 설정</a>
+  <a href="{{ url_for('admin_user_backup', user_id=user_info.id) }}" class="btn btn-outline-warning"> 💾 백업/복구
+</a>
+
 </div>
 
 <div class="text-center mt-3">

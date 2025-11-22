@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card card-dark p-4 mb-4">
+  <h4 class="fw-bold text-white mb-3">
+    💾 유저 데이터 백업 / 복구
+  </h4>
+
+  <p class="text-secondary small mb-4">
+    선택한 유저의 포트폴리오 활동 데이터를 CSV 파일로 백업하거나, 
+    이전에 백업한 파일을 업로드하여 복구할 수 있습니다.
+  </p>
+
+  <!-- 유저 정보 -->
+  <div class="mb-4">
+    <h5 class="fw-bold text-white mb-2">👤 대상 유저</h5>
+    <p class="text-secondary small mb-1">
+      <strong class="text-white">ID:</strong> {{ user_info.id }}
+    </p>
+    <p class="text-secondary small mb-1">
+      <strong class="text-white">이메일:</strong> {{ user_info.email }}
+    </p>
+    <p class="text-secondary small mb-0">
+      <strong class="text-white">가입일:</strong> {{ user_info.created_at }}
+    </p>
+  </div>
+
+  <hr class="border-secondary">
+
+  <!-- 백업(다운로드) -->
+  <div class="mb-4">
+    <h5 class="fw-bold text-white mb-2">⬇️ 데이터 백업 (다운로드)</h5>
+    <p class="text-secondary small mb-3">
+      이 버튼을 누르면 해당 유저의 <strong>experience</strong> 데이터가 CSV 파일로 다운로드됩니다.
+    </p>
+    <a href="{{ url_for('export_data', user_id=user_info.id) }}"
+       class="btn btn-success">
+      💾 CSV 파일 다운로드
+    </a>
+  </div>
+
+  <hr class="border-secondary">
+
+  <!-- 복구(업로드) -->
+  <div class="mb-2">
+    <h5 class="fw-bold text-white mb-2">⬆️ 데이터 복구 (업로드)</h5>
+    <p class="text-secondary small mb-3">
+      이전에 백업해 둔 CSV 파일을 선택한 뒤 업로드하면, 
+      해당 유저의 활동 데이터에 <strong>행 단위로 추가</strong>됩니다.
+      (중복 데이터 여부는 관리자 판단이 필요합니다.)
+    </p>
+
+    <form method="post"
+          action="{{ url_for('import_data', user_id=user_info.id) }}"
+          enctype="multipart/form-data">
+      <div class="mb-3">
+        <input type="file" name="file" 
+               class="form-control bg-dark text-white border-secondary" 
+               accept=".csv" required>
+      </div>
+      <button type="submit" class="btn btn-warning">
+        📤 CSV 파일 업로드하여 복구
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="text-center mt-3 d-flex justify-content-center gap-3">
+  <a href="{{ url_for('admin_user_profile', user_id=user_info.id) }}" class="btn btn-outline-light">
+    👤 유저 프로필로
+  </a>
+  <a href="{{ url_for('admin_user_list') }}" class="btn btn-outline-secondary">
+    ← 유저 목록으로
+  </a>
+</div>
+
+{% endblock %}

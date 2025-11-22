@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card card-dark p-4 mb-4">
+  <h4 class="fw-bold text-white mb-3">
+    📅 유저 활동 타임라인
+  </h4>
+
+  <p class="text-secondary small mb-4">
+    활동이 오래된 순 → 최신 순으로 정렬된 관리자 전용 타임라인입니다.
+  </p>
+
+  <!-- 유저 정보 -->
+  <div class="mb-4">
+    <h5 class="fw-bold text-white mb-2">👤 유저 정보</h5>
+    <p class="text-secondary small mb-1"><strong class="text-white">ID:</strong> {{ user_info.id }}</p>
+    <p class="text-secondary small mb-1"><strong class="text-white">이메일:</strong> {{ user_info.email }}</p>
+    <p class="text-secondary small"><strong class="text-white">가입일:</strong> {{ user_info.created_at }}</p>
+  </div>
+
+  <hr class="border-secondary">
+
+  <!-- 타임라인 본문 -->
+  <div class="timeline mt-4">
+    {% if experiences %}
+      {% for exp in experiences %}
+        <div class="timeline-item position-relative mb-4 ps-4">
+
+          <!-- 점 -->
+          <div style="
+              width: 12px; 
+              height: 12px; 
+              background: #8b5cf6; 
+              border-radius: 50%; 
+              position: absolute; 
+              left: -6px; 
+              top: 7px;
+              box-shadow: 0 0 10px #8b5cf6;">
+          </div>
+
+          <!-- 선 -->
+          {% if not loop.last %}
+          <div style="
+              position: absolute; 
+              left: -1px; 
+              top: 24px; 
+              width: 2px; 
+              height: calc(100% - 10px); 
+              background: rgba(255,255,255,0.1);">
+          </div>
+          {% endif %}
+
+          <h5 class="text-white fw-bold mb-1">{{ exp.title }}</h5>
+          <p class="text-secondary small mb-2">
+            {{ exp.category }} · 
+            {{ exp.start_date }} ~ {{ exp.end_date or "진행 중" }}
+          </p>
+          <p class="text-white small keep-all mb-2">{{ exp.description }}</p>
+
+          {% if exp.skills %}
+          <p class="text-info small mb-0">🔧 Skills: {{ exp.skills }}</p>
+          {% endif %}
+          {% if exp.link %}
+          <p class="small mb-0">
+            🔗 <a href="{{ exp.link }}" class="text-primary" target="_blank">증빙 링크 열기</a>
+          </p>
+          {% endif %}
+
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="text-secondary small">등록된 활동이 없습니다.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+
+<!-- 빠른 이동 버튼 -->
+<div class="text-center mt-4 d-flex justify-content-center gap-3">
+  <a href="{{ url_for('index', user_id=user_info.id) }}" class="btn btn-primary">📁 대시보드</a>
+  <a href="{{ url_for('resume', user_id=user_info.id) }}" class="btn btn-warning">📝 이력서 생성</a>
+  <a href="{{ url_for('analyze', user_id=user_info.id) }}" class="btn btn-info">🔍 AI 분석</a>
+  <a href="{{ url_for('settings', user_id=user_info.id) }}" class="btn btn-secondary">⚙️ 프로필 설정</a>
+</div>
+
+<div class="text-center mt-3">
+  <a href="{{ url_for('admin_user_list') }}" class="btn btn-outline-light">← 유저 목록으로</a>
+</div>
+
+{% endblock %}

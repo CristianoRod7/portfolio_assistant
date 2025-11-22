@@ -263,6 +263,70 @@ def admin_login():
         else:
             return render_template('login.html', error='비밀번호가 틀렸습니다.', mode='admin')
     return render_template('login.html', mode='admin')
+@app.route("/admin/user_timeline")
+
+@admin_required
+def admin_user_timeline():
+    target_user_id = request.args.get("user_id", type=int)
+    if not target_user_id:
+        flash("user_id가 필요합니다.", "warning")
+        return redirect(url_for("admin_user_list"))
+
+    # 유저 기본 정보
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT id, email, created_at FROM users WHERE id = %s", (target_user_id,))
+    user_info = cur.fetchone()
+
+    # 유저 경험 전체 (최신순)
+    cur.execute(
+        "SELECT * FROM experience WHERE user_id = %s ORDER BY start_date DESC NULLS LAST, id DESC",
+        (target_user_id,)
+    )
+    experiences = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template(
+        "admin_user_timeline.html",
+        user_info=user_info,
+        experiences=experiences
+    )
+@app.route("/admin/user_backup")
+
+@admin_required
+def admin_user_backup():
+    target_user_id = request.args.get("user_id", type=int)
+    if not target_user_id:
+        flash("user_id가 필요합니다.", "warning")
+        return redirect(url_for("admin_user_list"))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # 유저 기본 정보
+    cur.execute(
+        "SELECT id, email, created_at FROM users WHERE id = %s",
+        (target_user_id,)
+    )
+    user_info = cur.fetchone()
+
+    # 경험 개수
+    cur.execute(
+        "SELECT COUNT(*) AS cnt FROM experience WHERE user_id = %s",
+        (target_user_id,)
+    )
+    exp_count = cur.fetchone()["cnt"]
+
+    cur.close()
+    conn.close()
+
+    return render_template(
+        "admin_user_backup.html",
+        user_info=user_info,
+        exp_count=exp_count
+    )
 
 
 # --- 일반 유저 회원가입 ---
@@ -908,6 +972,68 @@ def admin_user_profile():
         user_info=user_info,
         profile=profile,
         experiences=experiences
+    )
+@app.route("/admin/dashboard")
+@admin_required
+def admin_dashboard():
+    conn = get_db_connection()
+    if not conn:
+        return "DB 연결 오류", 500
+    cur = conn.cursor()
+
+    # 총 유저 수
+    cur.execute("SELECT COUNT(*) AS cnt FROM users")
+    total_users = cur.fetchone()["cnt"]
+
+    # 총 활동 수
+    cur.execute("SELECT COUNT(*) AS cnt FROM experience")
+    total_experiences = cur.fetchone()["cnt"]
+
+    # 활동이 있는 유저 수
+    cur.execute("SELECT COUNT(DISTINCT user_id) AS cnt FROM experience")
+    active_users = cur.fetchone()["cnt"]
+
+    # 전공별 유저 수 (상위 5개)
+    cur.execute("""
+        SELECT COALESCE(major, '미등록') AS major, COUNT(*) AS cnt
+        FROM profile
+        GROUP BY major
+        ORDER BY cnt DESC
+        LIMIT 5
+    """)
+    majors = cur.fetchall()
+
+    # 최근 가입 유저 5명
+    cur.execute("""
+        SELECT id, email, created_at
+        FROM users
+        ORDER BY created_at DESC NULLS LAST
+        LIMIT 5
+    """)
+    recent_users = cur.fetchall()
+
+    # 활동 많이 한 유저 5명
+    cur.execute("""
+        SELECT u.id, u.email, COUNT(e.*) AS exp_count
+        FROM users u
+        LEFT JOIN experience e ON u.id = e.user_id
+        GROUP BY u.id, u.email
+        ORDER BY exp_count DESC, u.id
+        LIMIT 5
+    """)
+    top_users = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template(
+        "admin_dashboard.html",
+        total_users=total_users,
+        total_experiences=total_experiences,
+        active_users=active_users,
+        majors=majors,
+        recent_users=recent_users,
+        top_users=top_users
     )
 
 
