@@ -7,16 +7,36 @@
       <div class="mb-4">
         <span class="display-6">🔒</span>
       </div>
-      <h3 class="h5 fw-bold mb-3 text-white">관리자 로그인</h3>
-      <p class="text-secondary small mb-4">포트폴리오 관리자만 접속 가능합니다.</p>
-      
+
+      {# 제목 #}
+      <h3 class="h5 fw-bold mb-3 text-white">
+        {% if mode == 'admin' %}
+          관리자 로그인
+        {% elif mode == 'register' %}
+          회원가입
+        {% else %}
+          로그인
+        {% endif %}
+      </h3>
+
+      <p class="text-secondary small mb-4">
+        {% if mode == 'admin' %}
+          포트폴리오 관리자만 접속 가능합니다.
+        {% elif mode == 'register' %}
+          이메일과 비밀번호를 입력해 계정을 생성하세요.
+        {% else %}
+          등록된 이메일과 비밀번호로 로그인하세요.
+        {% endif %}
+      </p>
+
+      {# 에러 메시지 #}
       {% if error %}
         <div class="alert alert-danger py-2 small bg-danger bg-opacity-10 text-danger border-danger border-opacity-25">
           {{ error }}
         </div>
       {% endif %}
-      
-      <!-- 플래시 메시지 (로그인 필요 등) -->
+
+      {# 플래시 메시지 #}
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           {% for category, message in messages %}
@@ -25,22 +45,79 @@
         {% endif %}
       {% endwith %}
 
-      <form method="post">
-        <div class="mb-3">
-          <input type="password" name="password" 
-                 class="form-control bg-dark text-white border-secondary text-center py-2" 
-                 placeholder="비밀번호 입력" required autofocus>
+      {# 폼 시작 #}
+      <form method="post"
+            action="
+              {% if mode == 'admin' %}
+                {{ url_for('admin_login') }}
+              {% elif mode == 'register' %}
+                {{ url_for('register') }}
+              {% else %}
+                {{ url_for('login') }}
+              {% endif %}
+            ">
+
+        {% if mode != 'admin' %}
+          <!-- 일반 유저: 이메일 입력 -->
+          <div class="mb-3 text-start">
+            <label class="form-label text-secondary small mb-1">이메일</label>
+            <input type="email" name="email"
+                   class="form-control bg-dark text-white border-secondary py-2"
+                   placeholder="email@example.com" required autofocus>
+          </div>
+        {% endif %}
+
+        <!-- 비밀번호 입력 (관리자/유저 공통) -->
+        <div class="mb-3 text-start">
+          <label class="form-label text-secondary small mb-1">
+            {% if mode == 'admin' %}
+              관리자 비밀번호
+            {% else %}
+              비밀번호
+            {% endif %}
+          </label>
+          <input type="password" name="password"
+                 class="form-control bg-dark text-white border-secondary py-2"
+                 placeholder="비밀번호 입력" required {% if mode == 'admin' %}autofocus{% endif %}>
         </div>
+
         <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
-          Login Access
+          {% if mode == 'admin' %}
+            관리자 로그인
+          {% elif mode == 'register' %}
+            회원가입
+          {% else %}
+            로그인
+          {% endif %}
         </button>
       </form>
     </div>
-    
-    <div class="text-center mt-4">
-      <a href="{{ url_for('index') }}" class="text-secondary text-decoration-none small">
+
+    <!-- 하단 링크 -->
+    <div class="text-center mt-4 small">
+      <a href="{{ url_for('index') }}" class="text-secondary text-decoration-none d-block mb-2">
         ← 메인으로 돌아가기
       </a>
+
+      {% if mode == 'login' %}
+        <a href="{{ url_for('register') }}" class="text-primary text-decoration-none me-2">
+          회원가입 하기
+        </a>
+        <a href="{{ url_for('admin_login') }}" class="text-secondary text-decoration-none">
+          관리자 로그인
+        </a>
+      {% elif mode == 'register' %}
+        <a href="{{ url_for('login') }}" class="text-secondary text-decoration-none me-2">
+          로그인으로 돌아가기
+        </a>
+        <a href="{{ url_for('admin_login') }}" class="text-secondary text-decoration-none">
+          관리자 로그인
+        </a>
+      {% elif mode == 'admin' %}
+        <a href="{{ url_for('login') }}" class="text-secondary text-decoration-none">
+          일반 사용자 로그인
+        </a>
+      {% endif %}
     </div>
   </div>
 </div>

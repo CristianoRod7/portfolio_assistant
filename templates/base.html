@@ -211,14 +211,34 @@
         <li class="nav-item border-start border-secondary mx-2 d-none d-lg-block"></li>
 
         {% if logged_in %}
+
+          {% if is_admin %}
+            <!-- 관리자 로그인 시에만 보이는 메뉴 -->
+            <li class="nav-item">
+              <a class="nav-link text-warning" href="{{ url_for('admin_user_list') }}">🛠 관리자 패널</a>
+            </li>
+          {% endif %}
+
           <li class="nav-item"><a class="nav-link" style="color: #d8b4fe;" href="{{ url_for('career') }}">🎓 진로 탐색</a></li>
           <li class="nav-item"><a class="nav-link text-info" href="{{ url_for('add') }}">활동 추가</a></li>
           <li class="nav-item"><a class="nav-link text-warning" href="{{ url_for('settings') }}">⚙️ AI 설정</a></li>
           <li class="nav-item"><a class="nav-link text-success" href="{{ url_for('backup_page') }}">💾 백업관리</a></li>
           <li class="nav-item"><a class="nav-link text-danger" href="{{ url_for('logout') }}">로그아웃</a></li>
+
         {% else %}
+
           <li class="nav-item border-start border-secondary mx-2 d-none d-lg-block"></li>
-          <li class="nav-item"><a class="nav-link text-secondary" href="{{ url_for('login') }}">관리자 로그인</a></li>
+
+          <li class="nav-item">
+            <a class="nav-link text-secondary" href="{{ url_for('login') }}">로그인</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-secondary" href="{{ url_for('register') }}">회원가입</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-secondary" href="{{ url_for('admin_login') }}">관리자 로그인</a>
+          </li>
+
         {% endif %}
       </ul>
     </div>

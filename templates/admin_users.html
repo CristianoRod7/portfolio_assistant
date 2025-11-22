@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card card-dark p-4 mb-4">
+  <h4 class="fw-bold text-white mb-3">
+    🛠 관리자 – 유저 목록
+  </h4>
+  <p class="text-secondary small mb-4">
+    아래 목록에서 관리할 유저를 선택하세요.
+  </p>
+
+  <div class="table-responsive">
+    <table class="table table-dark table-hover align-middle">
+      <thead class="table-secondary text-dark">
+        <tr>
+          <th style="width: 60px;">ID</th>
+          <th>Email</th>
+          <th style="width: 150px;">가입일</th>
+          <th style="width: 250px;">관리</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>{{ u.id }}</td>
+          <td>{{ u.email }}</td>
+          <td>{{ u.created_at }}</td>
+          <td>
+            <div class="d-flex gap-2">
+              <a class="btn btn-sm btn-primary"
+                 href="{{ url_for('index', user_id=u.id) }}">
+                📁 대시보드
+              </a>
+              <a class="btn btn-sm btn-warning"
+                 href="{{ url_for('resume', user_id=u.id) }}">
+                📝 이력서
+              </a>
+              <a class="btn btn-sm btn-info"
+                 href="{{ url_for('analyze', user_id=u.id) }}">
+                🔍 AI 분석
+              </a>
+              <a class="btn btn-sm btn-secondary"
+                 href="{{ url_for('settings', user_id=u.id) }}">
+                ⚙️ 설정
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<div class="text-center mt-3">
+  <a href="{{ url_for('index') }}" class="btn btn-outline-light">
+    ← 메인으로 돌아가기
+  </a>
+</div>
+
+{% endblock %}

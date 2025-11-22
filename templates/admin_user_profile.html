@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card card-dark p-4 mb-4">
+  <h4 class="fw-bold text-white mb-3">
+    👤 유저 프로필 보기
+  </h4>
+
+  <p class="text-secondary small mb-4">
+    유저 기본 정보와 포트폴리오 개요를 한 번에 확인할 수 있는 관리자 전용 페이지입니다.
+  </p>
+
+  <!-- 유저 기본 정보 -->
+  <div class="mb-4">
+    <h5 class="text-white fw-bold mb-2">📌 기본 정보</h5>
+    <div class="text-secondary small">
+      <p><strong class="text-white">ID:</strong> {{ user_info.id }}</p>
+      <p><strong class="text-white">이메일:</strong> {{ user_info.email }}</p>
+      <p><strong class="text-white">가입일:</strong> {{ user_info.created_at }}</p>
+    </div>
+  </div>
+
+  <!-- 프로필 정보 -->
+  <div class="mb-4">
+    <h5 class="text-white fw-bold mb-2">📝 프로필 정보</h5>
+    {% if profile %}
+      <div class="text-secondary small">
+        <p><strong class="text-white">이름:</strong> {{ profile.name or "등록 안 됨" }}</p>
+        <p><strong class="text-white">전공:</strong> {{ profile.major or "등록 안 됨" }}</p>
+        <p><strong class="text-white">커리어 목표:</strong> {{ profile.career_goal or "등록 안 됨" }}</p>
+        <p><strong class="text-white">강점:</strong> {{ profile.strengths or "등록 안 됨" }}</p>
+        <p><strong class="text-white">AI 작성 지시문:</strong> {{ profile.ai_instructions or "등록 안 됨" }}</p>
+      </div>
+    {% else %}
+      <p class="text-secondary small">프로필 정보 없음</p>
+    {% endif %}
+  </div>
+
+  <!-- 경험 목록 -->
+  <div>
+    <h5 class="text-white fw-bold mb-2">📂 경험 목록</h5>
+    {% if experiences %}
+      <ul class="list-group">
+        {% for exp in experiences %}
+          <li class="list-group-item bg-dark text-white border-secondary mb-2">
+            <strong>{{ exp.title }}</strong>
+            <br>
+            <span class="text-secondary small">
+              {{ exp.category }} · {{ exp.start_date }} ~ {{ exp.end_date or "진행 중" }}
+            </span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-secondary small">등록된 활동 없음</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- 빠른 이동 버튼 -->
+<div class="text-center mt-4 d-flex justify-content-center gap-3">
+  <a href="{{ url_for('index', user_id=user_info.id) }}" class="btn btn-primary">📁 대시보드</a>
+  <a href="{{ url_for('resume', user_id=user_info.id) }}" class="btn btn-warning">📝 이력서 생성</a>
+  <a href="{{ url_for('analyze', user_id=user_info.id) }}" class="btn btn-info">🔍 AI 분석</a>
+  <a href="{{ url_for('settings', user_id=user_info.id) }}" class="btn btn-secondary">⚙️ 프로필 설정</a>
+</div>
+
+<div class="text-center mt-3">
+  <a href="{{ url_for('admin_user_list') }}" class="btn btn-outline-light">
+    ← 유저 목록으로
+  </a>
+</div>
+
+{% endblock %}
