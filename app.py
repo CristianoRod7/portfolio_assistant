@@ -1210,6 +1210,14 @@ def naver_callback():
 
 
 
+# ----- 상단 설정 근처에 추가 -----
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+GOOGLE_REDIRECT_URI = os.getenv(
+    "GOOGLE_REDIRECT_URI",
+    "https://portfolio-assistant-9jo3.onrender.com/oauth/google/callback",
+)
+
 # =========================
 # 구글 로그인
 # =========================
@@ -1220,8 +1228,8 @@ def google_login():
     구글 로그인 페이지로 이동
     """
     query = urlencode({
-        "client_id": os.getenv("GOOGLE_CLIENT_ID"),
-        "redirect_uri": os.getenv("GOOGLE_REDIRECT_URI"),
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": GOOGLE_REDIRECT_URI,
         "response_type": "code",
         "scope": "openid email profile",
         "access_type": "offline",
@@ -1242,11 +1250,12 @@ def google_callback():
         "https://oauth2.googleapis.com/token",
         data={
             "code": code,
-            "client_id": os.getenv("GOOGLE_CLIENT_ID"),
-            "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
-            "redirect_uri": os.getenv("GOOGLE_REDIRECT_URI"),
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "redirect_uri": GOOGLE_REDIRECT_URI,
             "grant_type": "authorization_code",
-        }
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
     ).json()
 
     access_token = token_res.get("access_token")
@@ -1259,12 +1268,56 @@ def google_callback():
         headers={"Authorization": f"Bearer {access_token}"}
     ).json()
 
+    google_id = user_info.get("sub")
     email = user_info.get("email")
-    if not email:
-        email = f"google_user_{user_info.get('sub')}@noemail.com"
 
-    # 3) 공통 처리 (자동 가입 + 로그인)
-    return social_login_process(email)
+    if not email:
+        email = f"google_user_{google_id}@noemail.com"
+
+    # 3) DB에 자동 가입 + 로그인 처리
+    conn = get_db_connection()
+    if not conn:
+        return "DB 연결 오류", 500
+    cur = conn.cursor()
+
+    # 기존 유저 있는지 확인
+    cur.execute(
+        "SELECT * FROM users WHERE provider=%s AND provider_id=%s",
+        ("google", str(google_id)),
+    )
+    user = cur.fetchone()
+
+    if not user:
+        # 새 유저 생성
+        cur.execute("""
+            INSERT INTO users (email, password_hash, created_at, provider, provider_id)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id;
+        """, (
+            email,
+            "",  # 소셜 로그인이라 비밀번호 없음
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "google",
+            str(google_id),
+        ))
+        new_id = cur.fetchone()["id"]
+        # 기본 프로필도 같이 생성
+        cur.execute("INSERT INTO profile (user_id) VALUES (%s)", (new_id,))
+        user_id = new_id
+        conn.commit()
+    else:
+        user_id = user["id"]
+
+    cur.close()
+    conn.close()
+
+    # 4) 세션 로그인 처리
+    session["logged_in"] = True
+    session["is_admin"] = False
+    session["user_id"] = user_id
+
+    flash("구글 계정으로 로그인되었습니다.", "success")
+    return redirect(url_for("index"))
 
 
 # =========================
