@@ -1,10 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+<div class="row justify-content-center align-items-center" style="height: 60vh;">
   <div class="col-md-4">
     <div class="card card-dark p-4 text-center border-primary border-opacity-50 shadow-lg">
-
       <div class="mb-4">
         <span class="display-6">🔒</span>
       </div>
@@ -46,39 +45,40 @@
         {% endif %}
       {% endwith %}
 
-      {# ====================== 소셜 로그인 (관리자 제외) ====================== #}
+      {# ===== 소셜 로그인 (관리자 모드에서는 숨김) ===== #}
       {% if mode != 'admin' %}
         <div class="mt-4 d-flex flex-column gap-2">
 
           <!-- 카카오 -->
-          <a href="{{ url_for('kakao_login') }}"
-             style="
-                display:block;
-                width:100%;
-                background:#FEE500;
-                color:#3A1D1D;
-                font-weight:600;
-                padding:14px 0;
-                border-radius:12px;
-                text-align:center;
-                font-size:16px;">
-              <img src="https://developers.kakao.com/assets/img/about/logos/kakaotalk_sharing_btn_small.png"
-                   width="20" style="vertical-align:middle; margin-right:8px;">
-              카카오톡으로 계속하기
-          </a>
+         <a href="{{ url_for('kakao_login') }}"
+   style="
+        display:block;
+        width:100%;
+        background:#FEE500;
+        color:#3A1D1D;
+        font-weight:600;
+        padding:14px 0;
+        border-radius:12px;
+        text-align:center;
+        font-size:16px;">
+    <img src="{{ url_for('static', filename='img/kakao_icon.png') }}"
+         width="20" style="vertical-align:middle; margin-right:8px;">
+    카카오톡으로 계속하기
+</a>
+
 
           <!-- 네이버 -->
           <a href="{{ url_for('naver_login') }}"
              style="
-                display:block;
-                width:100%;
-                background:#03C75A;
-                color:#ffffff;
-                font-weight:700;
-                padding:14px 0;
-                border-radius:12px;
-                text-align:center;
-                font-size:16px;">
+                  display:block;
+                  width:100%;
+                  background:#03C75A;
+                  color:#ffffff;
+                  font-weight:700;
+                  padding:14px 0;
+                  border-radius:12px;
+                  text-align:center;
+                  font-size:16px;">
               <span style="font-size:20px; margin-right:8px;">N</span>
               네이버로 계속하기
           </a>
@@ -86,21 +86,20 @@
           <!-- 구글 -->
           <a href="{{ url_for('google_login') }}"
              style="
-                display:block;
-                width:100%;
-                background:#ffffff;
-                color:#000000;
-                font-weight:600;
-                padding:14px 0;
-                border-radius:12px;
-                border:1px solid #ddd;
-                text-align:center;
-                font-size:16px;">
+                  display:block;
+                  width:100%;
+                  background:#ffffff;
+                  color:#000000;
+                  font-weight:600;
+                  padding:14px 0;
+                  border-radius:12px;
+                  border:1px solid #ddd;
+                  text-align:center;
+                  font-size:16px;">
               <img src="https://www.google.com/favicon.ico"
                    width="20" style="vertical-align:middle; margin-right:8px;">
               구글로 계속하기
           </a>
-
         </div>
 
         <div class="text-center text-secondary small my-3">
@@ -108,7 +107,7 @@
         </div>
       {% endif %}
 
-      {# ====================== 이메일 / 비밀번호 입력폼 ====================== #}
+      {# ===== 이메일 / 비밀번호 폼 ===== #}
       <form method="post"
             action="
               {% if mode == 'admin' %}
@@ -121,16 +120,16 @@
             ">
 
         {% if mode != 'admin' %}
-          <!-- 이메일 입력 -->
+          <!-- 일반 유저: 이메일 입력 -->
           <div class="mb-3 text-start">
             <label class="form-label text-secondary small mb-1">이메일</label>
-            <input type="email" name="email" required
+            <input type="email" name="email"
                    class="form-control bg-dark text-white border-secondary py-2"
-                   placeholder="email@example.com" autofocus>
+                   placeholder="email@example.com" required autofocus>
           </div>
         {% endif %}
 
-        <!-- 비밀번호 입력 -->
+        <!-- 비밀번호 입력 (관리자/유저 공통) -->
         <div class="mb-3 text-start">
           <label class="form-label text-secondary small mb-1">
             {% if mode == 'admin' %}
@@ -139,10 +138,10 @@
               비밀번호
             {% endif %}
           </label>
-          <input type="password" name="password" required
+          <input type="password" name="password"
                  class="form-control bg-dark text-white border-secondary py-2"
                  placeholder="비밀번호 입력"
-                 {% if mode == 'admin' %}autofocus{% endif %}>
+                 required {% if mode == 'admin' %}autofocus{% endif %}>
         </div>
 
         <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
@@ -154,10 +153,33 @@
             로그인
           {% endif %}
         </button>
-
       </form>
-
     </div>
+
+    {# ===== 카드 바깥 하단 링크 (회원가입 화면에서는 숨김) ===== #}
+    <div class="text-center mt-4 small mb-4">
+      {% if mode != 'register' %}
+        <a href="{{ url_for('index') }}" class="text-secondary text-decoration-none d-block mb-2">
+          ← 메인으로 돌아가기
+        </a>
+      {% endif %}
+
+      {% if mode == 'login' %}
+        <a href="{{ url_for('register') }}" class="text-primary text-decoration-none me-2">
+          회원가입 하기
+        </a>
+        <a href "{{ url_for('admin_login') }}" class="text-secondary text-decoration-none">
+          관리자 로그인
+        </a>
+      {% elif mode == 'register' %}
+        {# 회원가입 화면에서는 여기 링크 숨김 (풋터에 이미 있음) #}
+      {% elif mode == 'admin' %}
+        <a href="{{ url_for('login') }}" class="text-secondary text-decoration-none">
+          일반 사용자 로그인
+        </a>
+      {% endif %}
+    </div>
+
   </div>
 </div>
 
