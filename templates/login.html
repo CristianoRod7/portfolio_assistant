@@ -50,26 +50,25 @@
         <div class="mt-4 d-flex flex-column gap-2">
 
           <!-- 카카오 -->
- <a href="{{ url_for('kakao_login') }}"
+<a href="{{ url_for('kakao_login') }}"
    style="
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      width:100%;
-      background:#FEE500;
-      color:#3A1D1D;
-      font-weight:600;
-      border-radius:12px;
-      padding:12px 0;
-      margin-top:12px;
-      text-decoration:none;
+        display:block;
+        width:100%;
+        background:#FEE500;
+        color:#3A1D1D;
+        font-weight:600;
+        padding:14px 0;
+        border-radius:12px;
+        text-align:center;
+        font-size:16px;
    ">
-    <img src="{{ url_for('static', filename='img/kakao_icon.png') }}"
-     width="48" height="28"
-     style="vertical-align:middle; margin-right:12px;">
+
+    <img src="https://cdn.jsdelivr.net/gh/kakaocorp/KakaoTalk-Icon/kakaotalk-icon.png"
+         width="28"
+         style="vertical-align:middle; margin-right:10px;">
+
     카카오톡으로 계속하기
 </a>
-
 
 
           <!-- 네이버 -->
