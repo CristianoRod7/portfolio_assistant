@@ -1178,22 +1178,21 @@ def naver_login():
 @app.route("/oauth/naver/callback")
 def naver_callback():
     code = request.args.get("code")
-    state = request.args.get("state")
+    state = request.args.get("state")  # 지금은 그냥 전달만
 
-    # 1) state 검증
-    if state != session.get("naver_state"):
-        return "네이버 간섭 오류: state mismatch"
-
-    # 2) 토큰 요청
+    # 1) 토큰 요청
+    token_url = "https://nid.naver.com/oauth2.0/token"
     token_res = requests.post(
-        "https://nid.naver.com/oauth2.0/token",
+        token_url,
         data={
             "grant_type": "authorization_code",
             "client_id": NAVER_CLIENT_ID,
             "client_secret": NAVER_CLIENT_SECRET,
             "code": code,
             "state": state,
-        }
+            "redirect_uri": NAVER_REDIRECT_URI,
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
     ).json()
 
     if "access_token" not in token_res:
@@ -1201,23 +1200,80 @@ def naver_callback():
 
     access_token = token_res["access_token"]
 
-    # 3) 유저 정보 요청
+    # 2) 사용자 정보 요청
     user_info = requests.get(
         "https://openapi.naver.com/v1/nid/me",
         headers={"Authorization": f"Bearer {access_token}"}
     ).json()
 
-    if user_info["resultcode"] != "00":
+    if user_info.get("resultcode") != "00":
         return f"네이버 사용자 정보 오류: {user_info}"
 
     profile = user_info["response"]
+    naver_id = str(profile["id"])
     email = profile.get("email")
     if not email:
-        # 네이버는 이메일 제공 동의 안하면 NULL임 → 임시 이메일 생성
-        email = f"naver_user_{profile['id']}@noemail.com"
+        email = f"naver_user_{naver_id}@noemail.com"
 
-    # 4) 공용 소셜 로그인 처리
-    return social_login_process(email)
+    # 3) DB 처리 (provider+provider_id → email 순으로 체크)
+    conn = get_db_connection()
+    if not conn:
+        return "DB 연결 오류", 500
+    cur = conn.cursor()
+
+    # 3-1) 이미 네이버로 연결된 계정이 있는지?
+    cur.execute(
+        "SELECT * FROM users WHERE provider = %s AND provider_id = %s",
+        ("naver", naver_id),
+    )
+    user = cur.fetchone()
+
+    if user:
+        user_id = user["id"]
+    else:
+        # 3-2) 같은 이메일 계정이 있는지?
+        cur.execute("SELECT * FROM users WHERE email = %s", (email,))
+        existing = cur.fetchone()
+
+        if existing:
+            # 기존 계정에 네이버 정보만 연결
+            user_id = existing["id"]
+            cur.execute(
+                "UPDATE users SET provider = %s, provider_id = %s WHERE id = %s",
+                ("naver", naver_id, user_id),
+            )
+            conn.commit()
+        else:
+            # 3-3) 완전 신규 → INSERT
+            cur.execute(
+                """
+                INSERT INTO users (email, password_hash, created_at, provider, provider_id)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id;
+                """,
+                (
+                    email,
+                    "",  # 소셜 로그인이라 비밀번호 없음
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "naver",
+                    naver_id,
+                )
+            )
+            user_id = cur.fetchone()["id"]
+            cur.execute("INSERT INTO profile (user_id) VALUES (%s)", (user_id,))
+            conn.commit()
+
+    cur.close()
+    conn.close()
+
+    # 4) 세션 로그인 처리
+    session["logged_in"] = True
+    session["is_admin"] = False
+    session["user_id"] = user_id
+
+    flash("네이버 계정으로 로그인되었습니다.", "success")
+    return redirect(url_for("index"))
+
 
 
 
@@ -1254,9 +1310,6 @@ def google_login():
 
 @app.route("/oauth/google/callback")
 def google_callback():
-    """
-    구글 로그인 콜백
-    """
     code = request.args.get("code")
 
     # 1) 토큰 교환
@@ -1282,45 +1335,59 @@ def google_callback():
         headers={"Authorization": f"Bearer {access_token}"}
     ).json()
 
-    google_id = user_info.get("sub")
+    google_id = str(user_info.get("sub"))
     email = user_info.get("email")
-
     if not email:
         email = f"google_user_{google_id}@noemail.com"
 
-    # 3) DB에 자동 가입 + 로그인 처리
+    # 3) DB 처리
     conn = get_db_connection()
     if not conn:
         return "DB 연결 오류", 500
     cur = conn.cursor()
 
-    # 기존 유저 있는지 확인
+    # 3-1) 이미 구글로 연결된 계정이 있는지 먼저 확인
     cur.execute(
-        "SELECT * FROM users WHERE provider=%s AND provider_id=%s",
-        ("google", str(google_id)),
+        "SELECT * FROM users WHERE provider = %s AND provider_id = %s",
+        ("google", google_id),
     )
     user = cur.fetchone()
 
-    if not user:
-        # 새 유저 생성
-        cur.execute("""
-            INSERT INTO users (email, password_hash, created_at, provider, provider_id)
-            VALUES (%s, %s, %s, %s, %s)
-            RETURNING id;
-        """, (
-            email,
-            "",  # 소셜 로그인이라 비밀번호 없음
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "google",
-            str(google_id),
-        ))
-        new_id = cur.fetchone()["id"]
-        # 기본 프로필도 같이 생성
-        cur.execute("INSERT INTO profile (user_id) VALUES (%s)", (new_id,))
-        user_id = new_id
-        conn.commit()
-    else:
+    if user:
+        # 이미 구글 계정 연결된 사용자
         user_id = user["id"]
+    else:
+        # 3-2) 같은 이메일을 가진 계정이 있는지 확인
+        cur.execute("SELECT * FROM users WHERE email = %s", (email,))
+        existing = cur.fetchone()
+
+        if existing:
+            # 기존 이메일 계정에 구글 정보만 연결
+            user_id = existing["id"]
+            cur.execute(
+                "UPDATE users SET provider = %s, provider_id = %s WHERE id = %s",
+                ("google", google_id, user_id),
+            )
+            conn.commit()
+        else:
+            # 3-3) 완전 신규 유저 → 새로 INSERT
+            cur.execute(
+                """
+                INSERT INTO users (email, password_hash, created_at, provider, provider_id)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id;
+                """,
+                (
+                    email,
+                    "",  # 소셜 로그인이라 비번 없음
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "google",
+                    google_id,
+                )
+            )
+            user_id = cur.fetchone()["id"]
+            cur.execute("INSERT INTO profile (user_id) VALUES (%s)", (user_id,))
+            conn.commit()
 
     cur.close()
     conn.close()
@@ -1332,6 +1399,7 @@ def google_callback():
 
     flash("구글 계정으로 로그인되었습니다.", "success")
     return redirect(url_for("index"))
+x
 
 
 # =========================
@@ -1391,40 +1459,57 @@ def kakao_callback():
 
     kakao_id = str(user_res["id"])
     account = user_res.get("kakao_account", {})
-    email = account.get("email", f"kakao_user_{kakao_id}@noemail.com")
+    email = account.get("email")
+    if not email:
+        email = f"kakao_user_{kakao_id}@noemail.com"
 
-    # 3) DB 저장 (provider, provider_id 포함)
+    # 3) DB 저장 (provider+provider_id → email 순으로 체크)
     conn = get_db_connection()
+    if not conn:
+        return "DB 연결 오류", 500
     cur = conn.cursor()
 
-    # 기존 유저 확인
+    # 3-1) 이미 카카오로 연결된 계정?
     cur.execute(
-        "SELECT * FROM users WHERE provider=%s AND provider_id=%s",
+        "SELECT * FROM users WHERE provider = %s AND provider_id = %s",
         ("kakao", kakao_id),
     )
     user = cur.fetchone()
 
-    if not user:
-        # 신규 생성
-        cur.execute(
-            """
-            INSERT INTO users (email, password_hash, created_at, provider, provider_id)
-            VALUES (%s, %s, %s, %s, %s)
-            RETURNING id;
-            """,
-            (
-                email,
-                "",  # 카카오 로그인은 비밀번호 없음
-                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "kakao",
-                kakao_id
-            )
-        )
-        user_id = cur.fetchone()["id"]
-        cur.execute("INSERT INTO profile (user_id) VALUES (%s)", (user_id,))
-        conn.commit()
-    else:
+    if user:
         user_id = user["id"]
+    else:
+        # 3-2) 같은 이메일 계정이 있는지 확인
+        cur.execute("SELECT * FROM users WHERE email = %s", (email,))
+        existing = cur.fetchone()
+
+        if existing:
+            # 기존 이메일 계정에 카카오 정보 연결
+            user_id = existing["id"]
+            cur.execute(
+                "UPDATE users SET provider = %s, provider_id = %s WHERE id = %s",
+                ("kakao", kakao_id, user_id),
+            )
+            conn.commit()
+        else:
+            # 3-3) 신규 계정 생성
+            cur.execute(
+                """
+                INSERT INTO users (email, password_hash, created_at, provider, provider_id)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id;
+                """,
+                (
+                    email,
+                    "",  # 소셜 로그인 비번 없음
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "kakao",
+                    kakao_id,
+                )
+            )
+            user_id = cur.fetchone()["id"]
+            cur.execute("INSERT INTO profile (user_id) VALUES (%s)", (user_id,))
+            conn.commit()
 
     cur.close()
     conn.close()
