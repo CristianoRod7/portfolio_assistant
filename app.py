@@ -1399,7 +1399,7 @@ def google_callback():
 
     flash("구글 계정으로 로그인되었습니다.", "success")
     return redirect(url_for("index"))
-x
+
 
 
 # =========================
